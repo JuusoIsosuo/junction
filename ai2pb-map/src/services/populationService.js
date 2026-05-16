@@ -17,13 +17,14 @@ function bboxAreaKm2(bbox) {
   return Math.abs(widthKm * heightKm);
 }
 
-function buildResult(total, source) {
+function buildResult(total, source, estimated = false) {
   const rounded = Math.round(total);
   return {
     total: rounded,
     male: Math.round(rounded * 0.495),
     female: Math.round(rounded * 0.505),
     source,
+    estimated,
     ageGroups: AGE_GROUPS.map(({ group, share, color }) => ({
       group,
       count: Math.round(rounded * share),
@@ -33,53 +34,42 @@ function buildResult(total, source) {
   };
 }
 
-async function fetchFromWorldPop(bbox, signal) {
-  // WorldPop expects a GeoJSON Feature, not a bare geometry
-  const geojson = {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[
-        [bbox.minLng, bbox.minLat],
-        [bbox.maxLng, bbox.minLat],
-        [bbox.maxLng, bbox.maxLat],
-        [bbox.minLng, bbox.maxLat],
-        [bbox.minLng, bbox.minLat],
-      ]],
-    },
-  };
-
-  const params = new URLSearchParams({
-    dataset: 'wpgp',
-    iso3: 'FIN',
-    year: 2020,
-    geojson: JSON.stringify(geojson),
-    runasync: 'false',
+async function fetchOsmPopulation(bbox, signal) {
+  const query = `
+    [out:json][timeout:20];
+    (
+      node["place"~"city|town|village|hamlet"]["population"](${bbox.minLat},${bbox.minLng},${bbox.maxLat},${bbox.maxLng});
+    );
+    out body;
+  `;
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    body: query,
+    signal,
   });
-
-  const res = await fetch(
-    `https://api.worldpop.org/v1/services/stats?${params}`,
-    { signal }
-  );
-  if (!res.ok) throw new Error(`WorldPop ${res.status}`);
-
+  if (!res.ok) throw new Error(`Overpass ${res.status}`);
   const json = await res.json();
-  const total = json?.data?.total_population;
-  if (total == null || total === 0) throw new Error('no data');
 
-  return buildResult(total, 'WorldPop 2020');
+  let total = 0;
+  for (const el of json.elements ?? []) {
+    const pop = parseInt(el.tags?.population ?? '0', 10);
+    if (!isNaN(pop)) total += pop;
+  }
+  return total;
 }
 
 export async function fetchPopulation({ bbox, signal }) {
   try {
-    return await fetchFromWorldPop(bbox, signal);
+    const osmTotal = await fetchOsmPopulation(bbox, signal);
+    if (osmTotal > 0) {
+      return buildResult(osmTotal, 'OSM (taajama-arvot)');
+    }
   } catch (err) {
     if (err.name === 'AbortError') throw err;
-
-    // Fallback: estimate from area × Finland average density (18/km²)
-    const area = bboxAreaKm2(bbox);
-    const estimated = area * 18;
-    return { ...buildResult(estimated, 'arvio (18 hlö/km²)'), estimated: true };
+    // fall through to density estimate
   }
+
+  // Fallback: area × Finland average population density (18/km²)
+  const area = bboxAreaKm2(bbox);
+  return buildResult(area * 18, 'arvio (18 hlö/km²)', true);
 }

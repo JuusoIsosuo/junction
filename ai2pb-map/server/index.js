@@ -117,6 +117,64 @@ out geom tags;
   }
 });
 
+app.post("/api/analyze", async (req, res) => {
+  const baseUrl = process.env.CONFIDENTIAL_MIND_BASE_URL;
+  const apiKey  = process.env.CONFIDENTIAL_MIND_API_KEY;
+  const model   = process.env.CONFIDENTIAL_MIND_MODEL || "gemma-3-27b-it";
+
+  if (!baseUrl || !apiKey) {
+    res.status(503).send("CONFIDENTIAL_MIND_BASE_URL and CONFIDENTIAL_MIND_API_KEY must be set");
+    return;
+  }
+
+  try {
+    const { summary } = req.body || {};
+    if (!summary) {
+      res.status(400).send("Missing summary");
+      return;
+    }
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        messages: [{
+          role: "user",
+          content: `You are a terrain analyst. Analyze this OSM area data and give a SHORT structured report with these sections:
+
+**Chokepoints** — 2-3 bullet points max, each one sentence.
+**Barriers** — 2-3 bullet points max on water/forest/terrain blocking movement.
+**Key roads** — 1-2 bullet points on critical corridors.
+**Notable features** — 1-2 bullet points only if something stands out.
+
+Rules: no intro, no conclusion, no filler. Bullets only. Each bullet max 20 words. If data is sparse, say so in one line.
+
+AREA DATA:
+${summary}`,
+        }],
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      res.status(response.status).send(text || `Upstream error ${response.status}`);
+      return;
+    }
+
+    const data = await response.json();
+    const msg = data.choices?.[0]?.message;
+    const analysis = msg?.content || msg?.reasoning || "No response from model.";
+    res.json({ analysis, summary });
+  } catch (err) {
+    res.status(500).send(err.message || "Analysis error");
+  }
+});
+
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`Server listening on http://localhost:${PORT}`);

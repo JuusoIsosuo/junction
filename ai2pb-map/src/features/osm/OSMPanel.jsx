@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchOsm } from "../../services/osmClient";
+import AnalysisPanel from "../analysis/AnalysisPanel";
+import { useDraggable } from "../../hooks/useDraggable";
 
 const CATEGORIES = [
   {
@@ -473,26 +475,43 @@ function CategoryBlock({ cat, counts }) {
   );
 }
 
-export default function OSMPanel({ bbox, map, onClose }) {
+export default function OSMPanel({
+  bbox, map, onClose,
+  fetchOsmData = true,
+  towerData, towerLoading, towerError,
+  roadsData, roadsLoading, roadsError,
+}) {
   const [counts, setCounts] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(fetchOsmData);
   const [error, setError] = useState(null);
   const [rawCount, setRawCount] = useState(0);
+  const [elements, setElements] = useState([]);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [minimized, setMinimized] = useState(false);
+  const { pos, onMouseDown } = useDraggable(() => ({ x: Math.max(20, window.innerWidth - 380), y: 20 }));
 
   useEffect(() => {
-    const controller = new AbortController();
+    if (!fetchOsmData) {
+      setLoading(false);
+      setCounts(null);
+      setElements([]);
+      return;
+    }
 
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     setCounts(null);
+    setElements([]);
+    setShowAnalysis(false);
 
     fetchOsm({ bbox, signal: controller.signal })
-      .then((elements) => {
-        setRawCount(elements.length);
-        setCounts(parseResults(elements));
+      .then((els) => {
+        setElements(els);
+        setRawCount(els.length);
+        setCounts(parseResults(els));
 
-        // Render on map
-        const geojson = toGeoJSON(elements);
+        const geojson = toGeoJSON(els);
         if (map && map.isStyleLoaded()) {
           addOSMLayers(map, geojson);
         } else if (map) {
@@ -507,12 +526,11 @@ export default function OSMPanel({ bbox, map, onClose }) {
         setLoading(false);
       });
 
-    // Cleanup layers when panel unmounts
     return () => {
       controller.abort();
       if (map) removeOSMLayers(map);
     };
-  }, [bbox, map]);
+  }, [bbox, map, fetchOsmData]);
 
   const areaKm2 = (() => {
     if (!bbox) return 0;
@@ -527,8 +545,8 @@ export default function OSMPanel({ bbox, map, onClose }) {
     <div
       style={{
         position: "absolute",
-        top: 20,
-        right: 20,
+        top: pos.y,
+        left: pos.x,
         width: 360,
         background: "rgba(0,0,0,0.88)",
         backdropFilter: "blur(10px)",
@@ -545,37 +563,39 @@ export default function OSMPanel({ bbox, map, onClose }) {
       }}
     >
       <div
+        onMouseDown={onMouseDown}
         style={{
           padding: "14px 16px",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: minimized ? "none" : "1px solid rgba(255,255,255,0.08)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexShrink: 0,
+          cursor: "grab",
+          userSelect: "none",
         }}
       >
         <div>
           <span style={{ fontSize: 13, fontWeight: "bold", color: "#f97316" }}>
-            🌿 Nature & Buildings
+            Area Intel
           </span>
           <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-            {rawCount} elements · {areaKm2} km²
+            {fetchOsmData ? `${rawCount} OSM elements · ` : ""}{areaKm2} km²
           </div>
         </div>
-        <button
-          onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#64748b",
-            fontSize: 18,
-            cursor: "pointer",
-          }}
-        >
-          ✕
-        </button>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button onClick={() => setMinimized((m) => !m)} title={minimized ? "Expand" : "Minimize"}
+            style={{ background: "none", border: "none", color: "#64748b", fontSize: 16, cursor: "pointer", lineHeight: 1 }}>
+            {minimized ? "▢" : "—"}
+          </button>
+          <button onClick={onClose}
+            style={{ background: "none", border: "none", color: "#64748b", fontSize: 18, cursor: "pointer" }}>
+            ✕
+          </button>
+        </div>
       </div>
 
+      {!minimized && <>
       {/* Map legend */}
       {!loading && counts && (
         <div style={{
@@ -620,10 +640,139 @@ export default function OSMPanel({ bbox, map, onClose }) {
           </div>
         )}
 
+        {/* Cell towers section */}
+        {(towerLoading || towerError || towerData) && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 7, padding: "8px 10px",
+            }}>
+              <span style={{ fontSize: 13, color: "white" }}>
+                <span style={{ marginRight: 7 }}>📡</span>Cell Towers
+              </span>
+              {towerData && (
+                <span style={{
+                  background: "#60a5fa", color: "#000", fontSize: 10,
+                  fontWeight: "bold", padding: "2px 7px", borderRadius: 10,
+                }}>
+                  {towerData.count}
+                </span>
+              )}
+            </div>
+            {towerLoading && (
+              <div style={{ fontSize: 12, color: "#64748b", padding: "6px 10px" }}>Loading…</div>
+            )}
+            {towerError && (
+              <div style={{ fontSize: 12, color: "#f87171", padding: "6px 10px" }}>Error: {towerError}</div>
+            )}
+            {towerData && (() => {
+              const radioBreakdown = {};
+              for (const t of towerData.towers ?? []) {
+                radioBreakdown[t.radio] = (radioBreakdown[t.radio] ?? 0) + 1;
+              }
+              const max = Math.max(...Object.values(radioBreakdown), 1);
+              return (
+                <div style={{ padding: "6px 4px 0" }}>
+                  {Object.entries(radioBreakdown).sort((a, b) => b[1] - a[1]).map(([radio, count]) => (
+                    <div key={radio} style={{
+                      display: "grid", gridTemplateColumns: "80px 1fr 40px",
+                      alignItems: "center", gap: 8, padding: "4px 6px", borderRadius: 4, marginBottom: 2,
+                    }}>
+                      <span style={{ fontSize: 11, color: "#94a3b8" }}>{radio}</span>
+                      <div style={{ height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.round((count / max) * 100)}%`, background: "#60a5fa", borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 11, textAlign: "right", fontWeight: "bold", color: "#60a5fa" }}>{count}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Roads section */}
+        {(roadsLoading || roadsError || roadsData) && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 7, padding: "8px 10px",
+            }}>
+              <span style={{ fontSize: 13, color: "white" }}>
+                <span style={{ marginRight: 7 }}>🛣️</span>Roads
+              </span>
+              {roadsData && (
+                <span style={{
+                  background: "#fb923c", color: "#000", fontSize: 10,
+                  fontWeight: "bold", padding: "2px 7px", borderRadius: 10,
+                }}>
+                  {Object.values(roadsData.counts ?? {}).reduce((a, b) => a + b, 0)}
+                </span>
+              )}
+            </div>
+            {roadsLoading && (
+              <div style={{ fontSize: 12, color: "#64748b", padding: "6px 10px" }}>Loading…</div>
+            )}
+            {roadsError && (
+              <div style={{ fontSize: 12, color: "#f87171", padding: "6px 10px" }}>Error: {roadsError}</div>
+            )}
+            {roadsData && (() => {
+              const entries = Object.entries(roadsData.counts ?? {}).sort((a, b) => b[1] - a[1]);
+              const max = Math.max(...entries.map(([, v]) => v), 1);
+              return (
+                <div style={{ padding: "6px 4px 0" }}>
+                  {entries.map(([type, count]) => (
+                    <div key={type} style={{
+                      display: "grid", gridTemplateColumns: "100px 1fr 40px",
+                      alignItems: "center", gap: 8, padding: "4px 6px", borderRadius: 4, marginBottom: 2,
+                    }}>
+                      <span style={{ fontSize: 11, color: "#94a3b8" }}>{type}</span>
+                      <div style={{ height: 5, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.round((count / max) * 100)}%`, background: "#fb923c", borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 11, textAlign: "right", fontWeight: "bold", color: "#fb923c" }}>{count}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         <div style={{ marginTop: 10, fontSize: 10, color: "#334155", textAlign: "right" }}>
           Data: openstreetmap.org via Overpass
         </div>
       </div>
+
+      {(!loading) && (counts || towerData || roadsData) && (
+        <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+          <button
+            onClick={() => setShowAnalysis(true)}
+            style={{
+              width: "100%", padding: "10px", borderRadius: 7,
+              border: "1.5px solid #a78bfa",
+              background: "rgba(167,139,250,0.12)",
+              color: "#a78bfa", fontFamily: "Arial", fontSize: 13,
+              fontWeight: "bold", cursor: "pointer",
+            }}
+          >
+            🧠 Analyze with AI
+          </button>
+        </div>
+      )}
+
+      {showAnalysis && (
+        <AnalysisPanel
+          elements={elements}
+          bbox={bbox}
+          towerData={towerData}
+          roadsData={roadsData}
+          onClose={() => setShowAnalysis(false)}
+        />
+      )}
+      </>}
     </div>
   );
 }

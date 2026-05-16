@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchWeather } from "../../services/weatherClient";
+import { useDraggable } from "../../hooks/useDraggable";
 
 const WMO_CODES = {
   0: "Clear sky",
@@ -56,7 +57,9 @@ export default function WeatherPanel({ lat, lng, onClose }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hourOffset, setHourOffset] = useState(0); // which 12-hour window to show
+  const [hourOffset, setHourOffset] = useState(0);
+  const [minimized, setMinimized] = useState(false);
+  const { pos, onMouseDown } = useDraggable(() => ({ x: Math.max(20, window.innerWidth - 360), y: 20 }));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -98,8 +101,8 @@ export default function WeatherPanel({ lat, lng, onClose }) {
     <div
       style={{
         position: "absolute",
-        top: 20,
-        right: 20,
+        top: pos.y,
+        left: pos.x,
         width: 340,
         background: "rgba(0,0,0,0.88)",
         backdropFilter: "blur(10px)",
@@ -117,13 +120,16 @@ export default function WeatherPanel({ lat, lng, onClose }) {
     >
       {/* Header */}
       <div
+        onMouseDown={onMouseDown}
         style={{
           padding: "14px 16px",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: minimized ? "none" : "1px solid rgba(255,255,255,0.08)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexShrink: 0,
+          cursor: "grab",
+          userSelect: "none",
         }}
       >
         <div>
@@ -134,21 +140,19 @@ export default function WeatherPanel({ lat, lng, onClose }) {
             {lat.toFixed(4)}°N, {lng.toFixed(4)}°E
           </div>
         </div>
-        <button
-          onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#64748b",
-            fontSize: 18,
-            cursor: "pointer",
-          }}
-        >
-          ✕
-        </button>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button onClick={() => setMinimized((m) => !m)} title={minimized ? "Expand" : "Minimize"}
+            style={{ background: "none", border: "none", color: "#64748b", fontSize: 16, cursor: "pointer", lineHeight: 1 }}>
+            {minimized ? "▢" : "—"}
+          </button>
+          <button onClick={onClose}
+            style={{ background: "none", border: "none", color: "#64748b", fontSize: 18, cursor: "pointer" }}>
+            ✕
+          </button>
+        </div>
       </div>
 
-      <div style={{ padding: "14px 16px", overflowY: "auto", flex: 1 }}>
+      {!minimized && <div style={{ padding: "14px 16px", overflowY: "auto", flex: 1 }}>
         {loading && (
           <div style={{ textAlign: "center", color: "#64748b", padding: "24px 0" }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
@@ -419,7 +423,7 @@ export default function WeatherPanel({ lat, lng, onClose }) {
             </>
           );
         })()}
-      </div>
+      </div>}
     </div>
   );
 }

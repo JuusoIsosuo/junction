@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useDraggable } from "../../hooks/useDraggable";
 
 // Open-Meteo elevation API — free, no key, Copernicus DEM 90m, very reliable
 // Max 100 locations per request, so keep GRID_N ≤ 10 (10×10 = 100 pts)
@@ -316,6 +317,8 @@ export default function ElevationPanel({ bbox, map, onClose }) {
   const [showHeat, setShowHeat] = useState(true);
   const [showContour, setShowContour] = useState(true);
   const layersRef = useRef(false);
+  const [minimized, setMinimized] = useState(false);
+  const { pos, onMouseDown } = useDraggable(() => ({ x: Math.max(20, window.innerWidth - 340), y: 20 }));
 
   const areaKm2 = (() => {
     const lat = (bbox.maxLat + bbox.minLat) / 2;
@@ -381,7 +384,7 @@ export default function ElevationPanel({ bbox, map, onClose }) {
 
   return (
     <div style={{
-      position: "absolute", top: 20, right: showHeat || show3D ? 360 : 20,
+      position: "absolute", top: pos.y, left: pos.x,
       width: 320, maxHeight: "88vh",
       background: "rgba(10,12,18,0.93)", backdropFilter: "blur(12px)",
       color: "white", borderRadius: 14, zIndex: 2,
@@ -389,15 +392,18 @@ export default function ElevationPanel({ bbox, map, onClose }) {
       boxShadow: "0 4px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(250,204,21,0.12)",
       border: "1px solid rgba(250,204,21,0.15)",
       display: "flex", flexDirection: "column", overflow: "hidden",
-      transition: "right 0.3s",
     }}>
       {/* ── Header ── */}
-      <div style={{
-        padding: "13px 16px", flexShrink: 0,
-        borderBottom: "1px solid rgba(250,204,21,0.1)",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        background: "rgba(250,204,21,0.04)",
-      }}>
+      <div
+        onMouseDown={onMouseDown}
+        style={{
+          padding: "13px 16px", flexShrink: 0,
+          borderBottom: minimized ? "none" : "1px solid rgba(250,204,21,0.1)",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          background: "rgba(250,204,21,0.04)",
+          cursor: "grab", userSelect: "none",
+        }}
+      >
         <div>
           <span style={{ fontSize: 13, fontWeight: "bold", color: "#facc15", letterSpacing: "0.04em" }}>
             ▲ ELEVATION · SRTM
@@ -406,15 +412,19 @@ export default function ElevationPanel({ bbox, map, onClose }) {
             {GRID_N}×{GRID_N} grid · ~{areaKm2} km² · open-meteo.com
           </div>
         </div>
-        <button
-          onClick={onClose}
-          style={{ background: "none", border: "none", color: "#475569", fontSize: 18, cursor: "pointer", lineHeight: 1 }}
-        >
-          ✕
-        </button>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button onClick={() => setMinimized((m) => !m)} title={minimized ? "Expand" : "Minimize"}
+            style={{ background: "none", border: "none", color: "#475569", fontSize: 16, cursor: "pointer", lineHeight: 1 }}>
+            {minimized ? "▢" : "—"}
+          </button>
+          <button onClick={onClose}
+            style={{ background: "none", border: "none", color: "#475569", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>
+            ✕
+          </button>
+        </div>
       </div>
 
-      <div style={{ overflowY: "auto", padding: "14px 16px", flex: 1 }}>
+      {!minimized && <div style={{ overflowY: "auto", padding: "14px 16px", flex: 1 }}>
 
         {/* ── Loading ── */}
         {loading && (
@@ -627,7 +637,7 @@ export default function ElevationPanel({ bbox, map, onClose }) {
             </div>
           </>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

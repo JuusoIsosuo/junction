@@ -55,14 +55,24 @@ out body;
     seen.add(el.id);
     const tags = el.tags ?? {};
     const radio = detectRadio(tags);
+    const networks = [];
+    if (tags['communication:NR']    === 'yes') networks.push('NR');
+    if (tags['communication:LTE']   === 'yes') networks.push('LTE');
+    if (tags['communication:UMTS']  === 'yes') networks.push('UMTS');
+    if (tags['communication:GSM']   === 'yes') networks.push('GSM');
+
     towers.push({
       id: el.id,
       lat: el.lat,
       lon: el.lon,
       radio,
       range: estimateRange(radio),
-      operator: tags['operator'],
-      name: tags['name'],
+      operator: tags['operator'] ?? null,
+      name: tags['name'] ?? null,
+      height: tags['height'] ?? null,
+      material: tags['material'] ?? null,
+      networks: networks.length ? networks.join(', ') : null,
+      ref: tags['ref'] ?? null,
     });
   }
 

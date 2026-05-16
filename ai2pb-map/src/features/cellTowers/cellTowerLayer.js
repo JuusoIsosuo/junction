@@ -1,3 +1,4 @@
+import mapboxgl from '../../services/mapbox';
 import { geoCircle } from "../../utils/geo";
 
 export const RADIO_COLORS = {
@@ -20,6 +21,8 @@ const LAYER_TOWERS_LABEL = 'cell-towers-label';
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
+let popup = null;
+
 function buildCoverageCollection(towers) {
   return {
     type: 'FeatureCollection',
@@ -37,9 +40,16 @@ function buildTowerCollection(towers) {
     features: towers.map((t) => ({
       type: 'Feature',
       properties: {
-        radio: t.radio,
-        color: RADIO_COLORS[t.radio] ?? '#6b7280',
-        label: t.operator ? `${t.radio} · ${t.operator}` : t.radio,
+        radio:    t.radio,
+        color:    RADIO_COLORS[t.radio] ?? '#6b7280',
+        label:    t.operator ? `${t.radio} · ${t.operator}` : t.radio,
+        name:     t.name,
+        operator: t.operator,
+        height:   t.height,
+        material: t.material,
+        networks: t.networks,
+        ref:      t.ref,
+        range:    t.range,
       },
       geometry: { type: 'Point', coordinates: [t.lon, t.lat] },
     })),
@@ -62,10 +72,47 @@ export function addCellTowerLayers(map) {
     map.addLayer({ id: LAYER_TOWERS_LABEL, type: 'symbol', source: SRC_TOWERS, minzoom: 11,
       layout: { 'text-field': ['get', 'radio'], 'text-size': 9, 'text-offset': [0, 1.2], 'text-anchor': 'top' },
       paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000', 'text-halo-width': 1 } });
+
+    map.on('click', LAYER_TOWERS, (e) => {
+      const feat = e.features?.[0];
+      if (!feat) return;
+      const p = feat.properties;
+      const color = p.color ?? '#ef4444';
+
+      const rows = [];
+      if (p.name)     rows.push(['Name',      p.name]);
+      if (p.operator) rows.push(['Operator',  p.operator]);
+      if (p.ref)      rows.push(['Ref',       p.ref]);
+      rows.push(['Radio',  p.radio]);
+      if (p.networks) rows.push(['Networks',  p.networks]);
+      rows.push(['Est. range', `${(p.range / 1000).toFixed(1)} km`]);
+      if (p.height)   rows.push(['Height',    `${p.height} m`]);
+      if (p.material) rows.push(['Material',  p.material]);
+
+      const tableRows = rows
+        .map(([k, v]) => `<tr><td style="color:#9ca3af;padding:2px 8px 2px 0;white-space:nowrap">${k}</td><td style="font-weight:bold">${v}</td></tr>`)
+        .join('');
+
+      const html = `
+        <div style="font-family:Arial;font-size:12px;color:#e5e7eb;min-width:160px">
+          <div style="font-size:13px;font-weight:bold;color:${color};margin-bottom:6px">&#9651; Cell Tower</div>
+          <table style="border-collapse:collapse">${tableRows}</table>
+        </div>`;
+
+      if (popup) popup.remove();
+      popup = new mapboxgl.Popup({ closeButton: true, maxWidth: '280px' })
+        .setLngLat(e.lngLat)
+        .setHTML(html)
+        .addTo(map);
+    });
+
+    map.on('mouseenter', LAYER_TOWERS, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', LAYER_TOWERS, () => { map.getCanvas().style.cursor = ''; });
   }
 }
 
 export function removeCellTowerLayers(map) {
+  if (popup) { popup.remove(); popup = null; }
   for (const id of [LAYER_TOWERS_LABEL, LAYER_TOWERS, LAYER_COV_LINE, LAYER_COV_FILL]) {
     if (map.getLayer(id)) map.removeLayer(id);
   }

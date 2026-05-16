@@ -43,6 +43,12 @@ import {
   updateElevationData, updateElevationVisibility,
   buildGrid, buildHeatmapGeoJSON, extractContours, pickContourLevels, calcStats,
 } from "../features/elevation/elevationLayer";
+import {
+  addLosLayers, removeLosLayers, updateLosData,
+} from "../features/lineOfSight/losLayer";
+import {
+  extractObstacles, computeLoS, losResultsToCanvas,
+} from "../features/lineOfSight/losCalculator";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
@@ -100,6 +106,11 @@ function App() {
   const [popData, setPopData]       = useState(null);
   const [popLoading, setPopLoading] = useState(false);
   const [popError, setPopError]     = useState(null);
+
+  const [losMode, setLosMode]         = useState(false);
+  const [losObserver, setLosObserver] = useState(null);
+  const [losResult, setLosResult]     = useState(null);
+  const [losComputing, setLosComputing] = useState(false);
 
   // ── Map initialisation ────────────────────────────────────────────
   useEffect(() => {
@@ -205,6 +216,7 @@ function App() {
     addMilitaryLayers(mapInstance);
     addOSMLayers(mapInstance);
     addElevationLayers(mapInstance);
+    addLosLayers(mapInstance);
     return () => {
       removeCellTowerLayers(mapInstance);
       removeRoadsLayers(mapInstance);
@@ -213,6 +225,7 @@ function App() {
       removeMilitaryLayers(mapInstance);
       removeOSMLayers(mapInstance);
       removeElevationLayers(mapInstance);
+      removeLosLayers(mapInstance);
     };
   }, [mapInstance]);
 
@@ -361,6 +374,55 @@ function App() {
       .catch((e) => { setElevError(e.message); setElevLoading(false); });
   }, [queriedBbox]);
 
+  // ── Line of Sight ────────────────────────────────────────────────
+  // Cursor crosshair when selecting observer
+  useEffect(() => {
+    if (!mapInstance) return;
+    mapInstance.getCanvas().style.cursor = losMode ? 'crosshair' : '';
+  }, [mapInstance, losMode]);
+
+  // Map click → set observer point
+  useEffect(() => {
+    if (!mapInstance || !losMode) return;
+    const handleClick = (e) => {
+      setLosObserver({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+      setLosMode(false);
+    };
+    mapInstance.on('click', handleClick);
+    return () => mapInstance.off('click', handleClick);
+  }, [mapInstance, losMode]);
+
+  // Compute LoS whenever observer or data changes
+  useEffect(() => {
+    if (!losObserver || !elevData || !osmData || !queriedBbox) return;
+    setLosComputing(true);
+    // Defer to next tick so UI updates first
+    setTimeout(() => {
+      const { buildings, forests } = extractObstacles(osmData.geojson);
+      const result = computeLoS({
+        observerLng: losObserver.lng,
+        observerLat: losObserver.lat,
+        bbox: queriedBbox,
+        elevResults: elevData.results,
+        buildings,
+        forests,
+      });
+      setLosResult(result);
+      setLosComputing(false);
+    }, 0);
+  }, [losObserver, elevData, osmData, queriedBbox]);
+
+  // Push LoS results to map layer
+  useEffect(() => {
+    if (!mapInstance) return;
+    if (!losResult || !losObserver) {
+      updateLosData(mapInstance, null, null, null, null);
+      return;
+    }
+    const canvas = losResultsToCanvas(losResult.results, losResult.gridCols, losResult.gridRows);
+    updateLosData(mapInstance, canvas, queriedBbox, losObserver.lng, losObserver.lat);
+  }, [mapInstance, losResult, losObserver, queriedBbox]);
+
   // ── Callbacks ─────────────────────────────────────────────────────
   const activatePaint = useCallback(() => {
     if (!draw.current || !map.current) return;
@@ -387,6 +449,7 @@ function App() {
     setQueriedBbox(null);
     setTowerData(null); setRoadsData(null); setBridgesData(null);
     setInfraData(null); setMilitaryData(null); setOsmData(null); setOsmElements([]); setElevData(null); setPopData(null);
+    setLosObserver(null); setLosResult(null); setLosMode(false);
     setShowWeather(false); setShowAnalysis(false);
     const src = map.current.getSource("drawn-area");
     if (src) src.setData({ type: "FeatureCollection", features: [] });
@@ -580,6 +643,48 @@ function App() {
                 }}>
                   ☁  Fetch Weather Data
                 </button>
+
+                {queriedBbox && elevData && osmData && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <button
+                      onClick={() => {
+                        if (losMode) { setLosMode(false); return; }
+                        setLosObserver(null); setLosResult(null);
+                        setLosMode(true);
+                      }}
+                      style={{
+                        width: "100%", padding: "10px", borderRadius: "7px",
+                        border: losMode ? "1.5px solid #f97316" : "1.5px solid #fb923c",
+                        background: losMode ? "rgba(249,115,22,0.2)" : "rgba(251,146,60,0.12)",
+                        color: losMode ? "#f97316" : "#fb923c",
+                        fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+                      }}
+                    >
+                      {losMode ? "✕  Peruuta valinta" : "👁  Line of Sight"}
+                    </button>
+                    {losMode && (
+                      <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
+                        Klikkaa kartalta piste, josta haluat tarkastella näkyvyyttä.
+                      </p>
+                    )}
+                    {losComputing && (
+                      <p style={{ fontSize: 12, color: "#fb923c", margin: 0 }}>Lasketaan näkyvyyttä…</p>
+                    )}
+                    {losObserver && !losMode && !losComputing && (
+                      <button
+                        onClick={() => { setLosObserver(null); setLosResult(null); }}
+                        style={{
+                          width: "100%", padding: "7px", borderRadius: "6px",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                          background: "rgba(255,255,255,0.05)",
+                          color: "#64748b", fontFamily: "Arial", fontSize: 12, cursor: "pointer",
+                        }}
+                      >
+                        Poista LoS
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             )}
 

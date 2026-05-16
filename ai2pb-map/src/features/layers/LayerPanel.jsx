@@ -1,6 +1,7 @@
 const LAYERS = [
   { id: 'cellTowers', label: 'Cell Towers', color: '#10b981', description: 'Mobile masts (OSM)' },
   { id: 'roads',      label: 'Roads',       color: '#3b82f6', description: 'Road network (OSM)' },
+  { id: 'bridges',    label: 'Bridges',     color: '#f59e0b', description: 'Bridges with max weight (OSM)' },
 ];
 
 export function LayerPanel({ enabledLayers, onToggle }) {

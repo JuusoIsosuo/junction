@@ -64,6 +64,25 @@ body {
   50%       { opacity: 0.4; transform: scale(0.7); }
 }
 
+/* Dark-themed Mapbox popups for bridge info */
+.mapboxgl-popup-content {
+  background: rgba(10, 10, 15, 0.95) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  border-radius: 8px !important;
+  padding: 12px 14px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+  color: #e5e7eb;
+}
+.mapboxgl-popup-tip {
+  border-top-color: rgba(10, 10, 15, 0.95) !important;
+  border-bottom-color: rgba(10, 10, 15, 0.95) !important;
+}
+.mapboxgl-popup-close-button {
+  color: #9ca3af !important;
+  font-size: 16px !important;
+  padding: 4px 8px !important;
+}
+
 h1,
 h2 {
   font-family: var(--heading);

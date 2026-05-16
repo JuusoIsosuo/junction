@@ -8,6 +8,7 @@ import { IntelPanel } from "../features/intel/IntelPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
 import { fetchCellTowers } from "../services/cellTowerService";
 import { fetchRoads } from "../services/roadsService";
+import { fetchBridges } from "../services/bridgeService";
 import {
   addCellTowerLayers, removeCellTowerLayers,
   updateCellTowerData, updateCellTowerVisibility,
@@ -16,6 +17,10 @@ import {
   addRoadsLayers, removeRoadsLayers,
   updateRoadsData, updateRoadsVisibility,
 } from "../features/roads/roadsLayer";
+import {
+  addBridgeLayers, removeBridgeLayers,
+  updateBridgeData, updateBridgeVisibility,
+} from "../features/bridges/bridgeLayer";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
@@ -33,7 +38,7 @@ function App() {
   const [showOSM, setShowOSM] = useState(false);
   const [showElevation, setShowElevation] = useState(false);
 
-  const [enabledLayers, setEnabledLayers] = useState({ cellTowers: true, roads: true });
+  const [enabledLayers, setEnabledLayers] = useState({ cellTowers: true, roads: true, bridges: true });
   const [queriedBbox, setQueriedBbox] = useState(null);
 
   const [towerData, setTowerData] = useState(null);
@@ -43,6 +48,10 @@ function App() {
   const [roadsData, setRoadsData] = useState(null);
   const [roadsLoading, setRoadsLoading] = useState(false);
   const [roadsError, setRoadsError] = useState(null);
+
+  const [bridgesData, setBridgesData] = useState(null);
+  const [bridgesLoading, setBridgesLoading] = useState(false);
+  const [bridgesError, setBridgesError] = useState(null);
 
   // ── Map initialisation ────────────────────────────────────────────
   useEffect(() => {
@@ -92,6 +101,7 @@ function App() {
       setQueriedBbox(null);
       setTowerData(null);
       setRoadsData(null);
+      setBridgesData(null);
     });
 
     map.current.on("load", () => setMapInstance(map.current));
@@ -108,9 +118,11 @@ function App() {
     if (!mapInstance) return;
     addCellTowerLayers(mapInstance);
     addRoadsLayers(mapInstance);
+    addBridgeLayers(mapInstance);
     return () => {
       removeCellTowerLayers(mapInstance);
       removeRoadsLayers(mapInstance);
+      removeBridgeLayers(mapInstance);
     };
   }, [mapInstance]);
 
@@ -126,8 +138,14 @@ function App() {
 
   useEffect(() => {
     if (!mapInstance) return;
+    updateBridgeData(mapInstance, bridgesData?.geojson ?? null);
+  }, [mapInstance, bridgesData]);
+
+  useEffect(() => {
+    if (!mapInstance) return;
     updateCellTowerVisibility(mapInstance, enabledLayers.cellTowers);
     updateRoadsVisibility(mapInstance, enabledLayers.roads);
+    updateBridgeVisibility(mapInstance, enabledLayers.bridges);
   }, [mapInstance, enabledLayers]);
 
   // ── Data fetching ─────────────────────────────────────────────────
@@ -163,6 +181,22 @@ function App() {
     return () => controller.abort();
   }, [queriedBbox]);
 
+  useEffect(() => {
+    if (!queriedBbox) return;
+    const controller = new AbortController();
+    setBridgesData(null);
+    setBridgesLoading(true);
+    setBridgesError(null);
+    fetchBridges({ bbox: queriedBbox, signal: controller.signal })
+      .then((data) => { setBridgesData(data); setBridgesLoading(false); })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setBridgesError(err.message);
+        setBridgesLoading(false);
+      });
+    return () => controller.abort();
+  }, [queriedBbox]);
+
   // ── Callbacks ─────────────────────────────────────────────────────
   const activatePaint = useCallback(() => {
     if (!draw.current) return;
@@ -185,6 +219,7 @@ function App() {
     setQueriedBbox(null);
     setTowerData(null);
     setRoadsData(null);
+    setBridgesData(null);
     draw.current.changeMode("simple_select");
     setIsPainting(false);
   }, []);
@@ -371,6 +406,9 @@ function App() {
           roads={roadsData}
           roadsLoading={roadsLoading}
           roadsError={roadsError}
+          bridges={bridgesData}
+          bridgesLoading={bridgesLoading}
+          bridgesError={bridgesError}
           enabledLayers={enabledLayers}
         />
       )}

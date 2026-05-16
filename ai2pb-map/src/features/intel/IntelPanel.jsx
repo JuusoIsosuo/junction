@@ -51,8 +51,8 @@ function BreakdownRow({ color, label, count }) {
   );
 }
 
-export function IntelPanel({ towers, towersLoading, towersError, roads, roadsLoading, roadsError, enabledLayers }) {
-  const hasContent = enabledLayers.cellTowers || enabledLayers.roads;
+export function IntelPanel({ towers, towersLoading, towersError, roads, roadsLoading, roadsError, bridges, bridgesLoading, bridgesError, enabledLayers }) {
+  const hasContent = enabledLayers.cellTowers || enabledLayers.roads || enabledLayers.bridges;
   if (!hasContent) return null;
 
   const radioCounts = {};
@@ -109,7 +109,7 @@ export function IntelPanel({ towers, towersLoading, towersError, roads, roadsLoa
 
       {/* Roads */}
       {enabledLayers.roads && (
-        <div style={{ ...sectionStyle, borderBottom: 'none' }}>
+        <div style={sectionStyle}>
           <SectionHeader color="#3b82f6" label="Roads" />
           <StatusRow loading={roadsLoading} error={roadsError} />
           {roads && !roadsLoading && (
@@ -127,6 +127,27 @@ export function IntelPanel({ towers, towersLoading, towersError, roads, roadsLoa
                   .map(([type, count]) => (
                     <BreakdownRow key={type} color={ROAD_COLORS[type] ?? '#6b7280'} label={type} count={count} />
                   ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Bridges */}
+      {enabledLayers.bridges && (
+        <div style={{ ...sectionStyle, borderBottom: 'none' }}>
+          <SectionHeader color="#f59e0b" label="Bridges" />
+          <StatusRow loading={bridgesLoading} error={bridgesError} />
+          {bridges && !bridgesLoading && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: 22, fontWeight: 700, color: '#f3f4f6', fontFamily: 'monospace' }}>
+                  {bridges.count.toLocaleString()}
+                </span>
+                <span style={{ fontSize: 11, color: '#6b7280' }}>bridges</span>
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                Click a bridge on the map to see max weight &amp; details.
               </div>
             </>
           )}

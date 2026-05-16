@@ -10,6 +10,7 @@ import { fetchCellTowers } from "../services/cellTowerService";
 import { fetchRoads } from "../services/roadsService";
 import { fetchBridges } from "../services/bridgeService";
 import { fetchInfrastructure } from "../services/infrastructureService";
+import { fetchMilitary } from "../services/militaryService";
 import { fetchOsm } from "../services/osmClient";
 import { fetchPopulation } from "../services/populationService";
 import {
@@ -28,6 +29,10 @@ import {
   addInfrastructureLayers, removeInfrastructureLayers,
   updateInfrastructureData, updateInfrastructureVisibility,
 } from "../features/infrastructure/infrastructureLayer";
+import {
+  addMilitaryLayers, removeMilitaryLayers,
+  updateMilitaryData, updateMilitaryVisibility,
+} from "../features/military/militaryLayer";
 import {
   addOSMLayers, removeOSMLayers,
   updateOSMData, updateBuildingsVisibility, updateNatureVisibility,
@@ -58,7 +63,7 @@ function App() {
   const [showWeather, setShowWeather] = useState(false);
 
   const [enabledLayers, setEnabledLayers] = useState({
-    cellTowers: true, roads: true, bridges: true, infrastructure: true, buildings: true, nature: true, elevation: true,
+    cellTowers: true, roads: true, bridges: true, infrastructure: true, military: true, buildings: true, nature: true, elevation: true,
   });
   const [queriedBbox, setQueriedBbox] = useState(null);
 
@@ -77,6 +82,10 @@ function App() {
   const [infraData, setInfraData]       = useState(null);
   const [infraLoading, setInfraLoading] = useState(false);
   const [infraError, setInfraError]     = useState(null);
+
+  const [militaryData, setMilitaryData]       = useState(null);
+  const [militaryLoading, setMilitaryLoading] = useState(false);
+  const [militaryError, setMilitaryError]     = useState(null);
 
   const [osmData, setOsmData]           = useState(null);
   const [osmElements, setOsmElements]   = useState([]);
@@ -148,6 +157,7 @@ function App() {
       setRoadsData(null);
       setBridgesData(null);
       setInfraData(null);
+      setMilitaryData(null);
       setOsmData(null);
       setOsmElements([]);
       setElevData(null);
@@ -192,6 +202,7 @@ function App() {
     addRoadsLayers(mapInstance);
     addBridgeLayers(mapInstance);
     addInfrastructureLayers(mapInstance);
+    addMilitaryLayers(mapInstance);
     addOSMLayers(mapInstance);
     addElevationLayers(mapInstance);
     return () => {
@@ -199,6 +210,7 @@ function App() {
       removeRoadsLayers(mapInstance);
       removeBridgeLayers(mapInstance);
       removeInfrastructureLayers(mapInstance);
+      removeMilitaryLayers(mapInstance);
       removeOSMLayers(mapInstance);
       removeElevationLayers(mapInstance);
     };
@@ -227,6 +239,11 @@ function App() {
 
   useEffect(() => {
     if (!mapInstance) return;
+    updateMilitaryData(mapInstance, militaryData?.geojson ?? null);
+  }, [mapInstance, militaryData]);
+
+  useEffect(() => {
+    if (!mapInstance) return;
     updateOSMData(mapInstance, osmData?.geojson ?? null);
   }, [mapInstance, osmData]);
 
@@ -245,6 +262,7 @@ function App() {
     updateRoadsVisibility(mapInstance, enabledLayers.roads);
     updateBridgeVisibility(mapInstance, enabledLayers.bridges);
     updateInfrastructureVisibility(mapInstance, enabledLayers.infrastructure);
+    updateMilitaryVisibility(mapInstance, enabledLayers.military);
     updateBuildingsVisibility(mapInstance, enabledLayers.buildings);
     updateNatureVisibility(mapInstance, enabledLayers.nature);
     updateElevationVisibility(mapInstance, enabledLayers.elevation);
@@ -288,6 +306,16 @@ function App() {
     fetchInfrastructure({ bbox: queriedBbox, signal: ctl.signal })
       .then((d) => { setInfraData(d); setInfraLoading(false); })
       .catch((e) => { if (e.name !== 'AbortError') { setInfraError(e.message); setInfraLoading(false); } });
+    return () => ctl.abort();
+  }, [queriedBbox]);
+
+  useEffect(() => {
+    if (!queriedBbox) return;
+    const ctl = new AbortController();
+    setMilitaryData(null); setMilitaryLoading(true); setMilitaryError(null);
+    fetchMilitary({ bbox: queriedBbox, signal: ctl.signal })
+      .then((d) => { setMilitaryData(d); setMilitaryLoading(false); })
+      .catch((e) => { if (e.name !== 'AbortError') { setMilitaryError(e.message); setMilitaryLoading(false); } });
     return () => ctl.abort();
   }, [queriedBbox]);
 
@@ -358,7 +386,7 @@ function App() {
     setBbox(null);
     setQueriedBbox(null);
     setTowerData(null); setRoadsData(null); setBridgesData(null);
-    setInfraData(null); setOsmData(null); setOsmElements([]); setElevData(null); setPopData(null);
+    setInfraData(null); setMilitaryData(null); setOsmData(null); setOsmElements([]); setElevData(null); setPopData(null);
     setShowWeather(false); setShowAnalysis(false);
     const src = map.current.getSource("drawn-area");
     if (src) src.setData({ type: "FeatureCollection", features: [] });
@@ -570,7 +598,8 @@ function App() {
           towers={towerData}           towersLoading={towerLoading}   towersError={towerError}
           roads={roadsData}            roadsLoading={roadsLoading}     roadsError={roadsError}
           bridges={bridgesData}        bridgesLoading={bridgesLoading} bridgesError={bridgesError}
-          infrastructure={infraData}   infraLoading={infraLoading}     infraError={infraError}
+          infrastructure={infraData}   infraLoading={infraLoading}       infraError={infraError}
+          military={militaryData}      militaryLoading={militaryLoading} militaryError={militaryError}
           osm={osmData}                osmLoading={osmLoading}         osmError={osmError}
           elevation={elevData}         elevLoading={elevLoading}       elevError={elevError}
           population={popData}         popLoading={popLoading}         popError={popError}

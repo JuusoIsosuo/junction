@@ -3,6 +3,7 @@ const LAYERS = [
   { id: 'roads',          label: 'Roads',           color: '#3b82f6', description: 'Road network (OSM)' },
   { id: 'bridges',        label: 'Bridges',         color: '#f97316', description: 'Bridges with max weight (OSM)' },
   { id: 'infrastructure', label: 'Infrastructure',  color: '#fbbf24', description: 'Dams, power plants, hospitals, factories, water supply (OSM)' },
+  { id: 'military',       label: 'Military',        color: '#6b7c3e', description: 'Bases, bunkers, airfields, checkpoints, ammo depots (OSM)' },
   { id: 'buildings',      label: 'Buildings',       color: '#a78bfa', description: 'Building footprints (OSM)' },
   { id: 'nature',         label: 'Nature',          color: '#34d399', description: 'Landcover, waterways, parks (OSM)' },
   { id: 'elevation',      label: 'Elevation',       color: '#facc15', description: 'Elevation heatmap & contours' },

@@ -1,5 +1,6 @@
 import { RADIO_COLORS } from "../cellTowers/cellTowerLayer";
 import { INFRA_TYPE_CONFIG } from "../../services/infrastructureService";
+import { MILITARY_TYPE_CONFIG } from "../../services/militaryService";
 import { AGE_GROUPS } from "../../services/populationService";
 
 const ROAD_COLORS = {
@@ -115,6 +116,7 @@ export function IntelPanel({
   roads, roadsLoading, roadsError,
   bridges, bridgesLoading, bridgesError,
   infrastructure, infraLoading, infraError,
+  military, militaryLoading, militaryError,
   osm, osmLoading, osmError,
   elevation, elevLoading, elevError,
   population, popLoading, popError,
@@ -235,6 +237,37 @@ export function IntelPanel({
                       <BreakdownRow
                         key={type}
                         color={cfg?.color ?? '#6b7280'}
+                        label={cfg?.label ?? type}
+                        count={count}
+                      />
+                    );
+                  })}
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                Click a site on the map for details.
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Military */}
+      {enabledLayers.military && (
+        <div style={sec}>
+          <SectionHeader color="#6b7c3e" label="Military" />
+          <StatusRow loading={militaryLoading} error={militaryError} />
+          {military && !militaryLoading && (
+            <>
+              <BigNum value={military.count} unit="sites" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {Object.entries(military.typeCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([type, count]) => {
+                    const cfg = MILITARY_TYPE_CONFIG[type];
+                    return (
+                      <BreakdownRow
+                        key={type}
+                        color={cfg?.color ?? '#4b5563'}
                         label={cfg?.label ?? type}
                         count={count}
                       />

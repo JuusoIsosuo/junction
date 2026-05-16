@@ -3,6 +3,7 @@ import { useDraggable } from "../hooks/useDraggable";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import mapboxgl from "../services/mapbox";
 import WeatherPanel from "../features/weather/WeatherPanel";
+import DronePanel from "../features/drone/DronePanel";
 import { IntelPanel } from "../features/intel/IntelPanel";
 import AnalysisPanel from "../features/analysis/AnalysisPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
@@ -67,6 +68,7 @@ function App() {
   const [isPainting, setIsPainting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
+  const [showDrone, setShowDrone] = useState(false);
 
   const [enabledLayers, setEnabledLayers] = useState({
     cellTowers: true, roads: true, bridges: true, infrastructure: true, military: true, buildings: true, nature: true, elevation: true,
@@ -450,7 +452,7 @@ function App() {
     setTowerData(null); setRoadsData(null); setBridgesData(null);
     setInfraData(null); setMilitaryData(null); setOsmData(null); setOsmElements([]); setElevData(null); setPopData(null);
     setLosObserver(null); setLosResult(null); setLosMode(false);
-    setShowWeather(false); setShowAnalysis(false);
+    setShowWeather(false); setShowAnalysis(false); setShowDrone(false);
     const src = map.current.getSource("drawn-area");
     if (src) src.setData({ type: "FeatureCollection", features: [] });
     setIsPainting(false);
@@ -644,6 +646,14 @@ function App() {
                   ☁  Fetch Weather Data
                 </button>
 
+                <button onClick={() => setShowDrone(true)} style={{
+                  width: "100%", padding: "10px", borderRadius: "7px",
+                  border: "1.5px solid #fb923c", background: "rgba(251,146,60,0.12)",
+                  color: "#fb923c", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+                }}>
+                  🚁  Drone Assessment
+                </button>
+
                 {queriedBbox && elevData && osmData && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <button
@@ -714,6 +724,10 @@ function App() {
 
       {showWeather && centerLat && centerLng && (
         <WeatherPanel lat={centerLat} lng={centerLng} onClose={() => setShowWeather(false)} />
+      )}
+
+      {showDrone && centerLat && centerLng && (
+        <DronePanel lat={centerLat} lng={centerLng} onClose={() => setShowDrone(false)} />
       )}
 
       {showAnalysis && bbox && (

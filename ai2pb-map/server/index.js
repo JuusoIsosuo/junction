@@ -34,6 +34,11 @@ app.get("/api/weather", async (req, res) => {
         "weather_code",
         "wind_speed_10m",
         "wind_direction_10m",
+        "wind_gusts_10m",
+        "dew_point_2m",
+        "surface_pressure",
+        "cloud_cover",
+        "visibility",
       ].join(",")
     );
     url.searchParams.set(
@@ -44,7 +49,11 @@ app.get("/api/weather", async (req, res) => {
         "precipitation",
         "weather_code",
         "wind_speed_10m",
+        "wind_gusts_10m",
         "relative_humidity_2m",
+        "dew_point_2m",
+        "visibility",
+        "cloud_cover",
       ].join(",")
     );
     url.searchParams.set("forecast_days", "2");

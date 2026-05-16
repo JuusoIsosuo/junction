@@ -3,6 +3,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import mapboxgl from "../services/mapbox";
 import WeatherPanel from "../features/weather/WeatherPanel";
 import OSMPanel from "../features/osm/OSMPanel";
+import ElevationPanel from "../ElevationPanel";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
@@ -17,6 +18,7 @@ function App() {
   const [copied, setCopied] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
   const [showOSM, setShowOSM] = useState(false);
+  const [showElevation, setShowElevation] = useState(false);
 
   const activatePaint = useCallback(() => {
     if (!draw.current) return;
@@ -24,6 +26,7 @@ function App() {
     setBbox(null);
     setShowWeather(false);
     setShowOSM(false);
+    setShowElevation(false);
     draw.current.changeMode("draw_polygon");
     setIsPainting(true);
   }, []);
@@ -34,6 +37,7 @@ function App() {
     setBbox(null);
     setShowWeather(false);
     setShowOSM(false);
+    setShowElevation(false);
     draw.current.changeMode("simple_select");
     setIsPainting(false);
   }, []);
@@ -108,6 +112,7 @@ function App() {
       setIsPainting(false);
       setShowWeather(false);
       setShowOSM(false);
+      setShowElevation(false);
     });
 
     return () => {
@@ -126,7 +131,7 @@ function App() {
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />
 
-      {/* Left panel */}
+      {/* ── Left control panel ─────────────────────────────────────────────── */}
       <div
         style={{
           position: "absolute",
@@ -243,7 +248,7 @@ function App() {
                   cursor: "pointer",
                 }}
               >
-                {copied ? "✓ Copied!" : "Copy JSON"}
+                {copied ? "✔ Copied!" : "Copy JSON"}
               </button>
               <button
                 onClick={clearArea}
@@ -298,15 +303,30 @@ function App() {
                 fontSize: 13,
                 fontWeight: "bold",
                 cursor: "pointer",
+                marginBottom: 8,
               }}
             >
               🌿 Fetch Nature & Buildings
+            </button>
+
+            {/* Elevation button — new */}
+            <button
+              onClick={() => setShowElevation(true)}
+              style={{
+                width: "100%", padding: "10px", borderRadius: "7px",
+                border: "1.5px solid #facc15",
+                background: "rgba(250,204,21,0.10)",
+                color: "#facc15", fontFamily: "Arial", fontSize: 13,
+                fontWeight: "bold", cursor: "pointer",
+              }}
+            >
+              ▲ Fetch Elevation Data
             </button>
           </>
         )}
       </div>
 
-      {/* Weather panel */}
+      {/* ── Weather panel ──────────────────────────────────────────────────── */}
       {showWeather && centerLat && centerLng && (
         <WeatherPanel
           lat={centerLat}
@@ -315,9 +335,18 @@ function App() {
         />
       )}
 
-      {/* OSM panel */}
+      {/* ── OSM panel ──────────────────────────────────────────────────────── */}
       {showOSM && bbox && (
         <OSMPanel bbox={bbox} map={map.current} onClose={() => setShowOSM(false)} />
+      )}
+
+      {/* ── Elevation panel ────────────────────────────────────────────────── */}
+      {showElevation && bbox && (
+        <ElevationPanel
+          bbox={bbox}
+          map={map.current}
+          onClose={() => setShowElevation(false)}
+        />
       )}
     </div>
   );

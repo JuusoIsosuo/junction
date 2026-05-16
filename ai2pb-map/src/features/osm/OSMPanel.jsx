@@ -78,6 +78,26 @@ const CATEGORIES = [
       { tag: "ditch", label: "Ditch" },
     ],
   },
+  {
+    key: "roads",
+    label: "Roads & Paths",
+    icon: "🛣️",
+    color: "#f97316",
+    subtypes: [
+      { tag: "motorway",     label: "Motorway" },
+      { tag: "trunk",        label: "Trunk" },
+      { tag: "primary",      label: "Primary" },
+      { tag: "secondary",    label: "Secondary" },
+      { tag: "tertiary",     label: "Tertiary" },
+      { tag: "residential",  label: "Residential" },
+      { tag: "service",      label: "Service" },
+      { tag: "unclassified", label: "Unclassified" },
+      { tag: "footway",      label: "Footway" },
+      { tag: "cycleway",     label: "Cycleway" },
+      { tag: "path",         label: "Path" },
+      { tag: "track",        label: "Track" },
+    ],
+  },
 ];
 
 // Color per feature type for map rendering
@@ -96,6 +116,15 @@ const FEATURE_COLORS = {
   landuse_other: "#6ee7b7",
   leisure: "#86efac",
   waterway: "#38bdf8",
+  road_motorway:   "#fbbf24",
+  road_trunk:      "#f59e0b",
+  road_primary:    "#f97316",
+  road_secondary:  "#fb923c",
+  road_tertiary:   "#fdba74",
+  road_residential:"#e2e8f0",
+  road_service:    "#94a3b8",
+  road_path:       "#7dd3fc",
+  road_other:      "#cbd5e1",
 };
 
 // Convert Overpass elements (with geom) to GeoJSON features
@@ -122,13 +151,21 @@ function toGeoJSON(elements) {
     else if (tags.landuse) featureType = "landuse_other";
     else if (tags.leisure) featureType = "leisure";
     else if (tags.waterway) featureType = "waterway";
+    else if (tags.highway === "motorway" || tags.highway === "trunk") featureType = "road_motorway";
+    else if (tags.highway === "primary") featureType = "road_primary";
+    else if (tags.highway === "secondary") featureType = "road_secondary";
+    else if (tags.highway === "tertiary") featureType = "road_tertiary";
+    else if (tags.highway === "residential" || tags.highway === "unclassified" || tags.highway === "living_street") featureType = "road_residential";
+    else if (tags.highway === "service") featureType = "road_service";
+    else if (tags.highway === "footway" || tags.highway === "cycleway" || tags.highway === "path") featureType = "road_path";
+    else if (tags.highway) featureType = "road_other";
 
     const color = FEATURE_COLORS[featureType] || "#ffffff";
 
     // Way with geometry (array of {lat, lon})
     if (el.type === "way" && el.geometry && el.geometry.length > 0) {
       const coords = el.geometry.map(({ lon, lat }) => [lon, lat]);
-      const isClosedArea = tags.building || tags.natural || tags.landuse || tags.leisure;
+      const isClosedArea = (tags.building || tags.natural || tags.landuse || tags.leisure) && !tags.highway;
 
       if (isClosedArea && coords.length > 2) {
         // Close the ring if needed
@@ -166,6 +203,7 @@ function toGeoJSON(elements) {
             tags.leisure ||
             tags.waterway ||
             "",
+          _highwayType: tags.highway || "",
         },
       });
     }
@@ -175,7 +213,7 @@ function toGeoJSON(elements) {
 }
 
 function parseResults(elements) {
-  const counts = { buildings: {}, natural: {}, landuse: {}, leisure: {}, waterway: {} };
+  const counts = { buildings: {}, natural: {}, landuse: {}, leisure: {}, waterway: {}, roads: {} };
   for (const el of elements) {
     const tags = el.tags || {};
     if (tags.building) counts.buildings[tags.building] = (counts.buildings[tags.building] || 0) + 1;
@@ -183,16 +221,19 @@ function parseResults(elements) {
     if (tags.landuse) counts.landuse[tags.landuse] = (counts.landuse[tags.landuse] || 0) + 1;
     if (tags.leisure) counts.leisure[tags.leisure] = (counts.leisure[tags.leisure] || 0) + 1;
     if (tags.waterway) counts.waterway[tags.waterway] = (counts.waterway[tags.waterway] || 0) + 1;
+    if (tags.highway)  counts.roads[tags.highway]     = (counts.roads[tags.highway]     || 0) + 1;
   }
   return counts;
 }
 
 // Add/remove OSM layers on the Mapbox map
-const OSM_SOURCE = "osm-features";
-const LAYER_FILLS = "osm-fills";
-const LAYER_LINES = "osm-lines";
-const LAYER_POINTS = "osm-points";
-const LAYER_LABELS = "osm-labels";
+const OSM_SOURCE        = "osm-features";
+const LAYER_FILLS       = "osm-fills";
+const LAYER_ROAD_CASING = "osm-road-casing";
+const LAYER_ROADS       = "osm-roads";
+const LAYER_LINES       = "osm-lines";
+const LAYER_POINTS      = "osm-points";
+const LAYER_LABELS      = "osm-labels";
 
 function addOSMLayers(map, geojson) {
   removeOSMLayers(map);
@@ -212,19 +253,76 @@ function addOSMLayers(map, geojson) {
     },
   });
 
-  // Polygon outlines
+  // Road casing (outline) layer — rendered below road fill for depth
+  map.addLayer({
+    id: LAYER_ROAD_CASING,
+    type: "line",
+    source: OSM_SOURCE,
+    filter: ["in", ["get", "_featureType"], ["literal", [
+      "road_motorway","road_trunk","road_primary","road_secondary",
+      "road_tertiary","road_residential","road_service","road_path","road_other",
+    ]]],
+    paint: {
+      "line-color": "#000000",
+      "line-opacity": 0.4,
+      "line-width": ["match", ["get", "_featureType"],
+        "road_motorway",   9,
+        "road_trunk",      8,
+        "road_primary",    7,
+        "road_secondary",  6,
+        "road_tertiary",   5,
+        "road_residential",4,
+        "road_service",    3,
+        "road_path",       2,
+        3,
+      ],
+      "line-cap": "round",
+      "line-join": "round",
+    },
+  });
+
+  // Road fill layer
+  map.addLayer({
+    id: LAYER_ROADS,
+    type: "line",
+    source: OSM_SOURCE,
+    filter: ["in", ["get", "_featureType"], ["literal", [
+      "road_motorway","road_trunk","road_primary","road_secondary",
+      "road_tertiary","road_residential","road_service","road_path","road_other",
+    ]]],
+    paint: {
+      "line-color": ["get", "_color"],
+      "line-opacity": 0.95,
+      "line-width": ["match", ["get", "_featureType"],
+        "road_motorway",   7,
+        "road_trunk",      6,
+        "road_primary",    5,
+        "road_secondary",  4,
+        "road_tertiary",   3,
+        "road_residential",2.5,
+        "road_service",    1.8,
+        "road_path",       1.2,
+        2,
+      ],
+      "line-cap": "round",
+      "line-join": "round",
+    },
+  });
+
+  // Polygon outlines + waterways (non-road lines)
   map.addLayer({
     id: LAYER_LINES,
     type: "line",
     source: OSM_SOURCE,
+    filter: ["!", ["in", ["get", "_featureType"], ["literal", [
+      "road_motorway","road_trunk","road_primary","road_secondary",
+      "road_tertiary","road_residential","road_service","road_path","road_other",
+    ]]]],
     paint: {
       "line-color": ["get", "_color"],
-      "line-width": [
-        "case",
-        ["==", ["get", "_featureType"], "buildings"],
-        1.5,
-        ["==", ["get", "_featureType"], "waterway"],
-        2,
+      "line-width": ["match", ["get", "_featureType"],
+        "buildings", 1.5,
+        "waterway",  2,
         0.8,
       ],
       "line-opacity": 0.9,
@@ -267,7 +365,7 @@ function addOSMLayers(map, geojson) {
 }
 
 function removeOSMLayers(map) {
-  [LAYER_LABELS, LAYER_POINTS, LAYER_LINES, LAYER_FILLS].forEach((id) => {
+  [LAYER_LABELS, LAYER_POINTS, LAYER_LINES, LAYER_ROADS, LAYER_ROAD_CASING, LAYER_FILLS].forEach((id) => {
     if (map.getLayer(id)) map.removeLayer(id);
   });
   if (map.getSource(OSM_SOURCE)) map.removeSource(OSM_SOURCE);
@@ -478,7 +576,33 @@ export default function OSMPanel({ bbox, map, onClose }) {
         </button>
       </div>
 
-      <div style={{ padding: "14px 16px", overflowY: "auto", flex: 1 }}>
+      {/* Map legend */}
+      {!loading && counts && (
+        <div style={{
+          padding: "8px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)",
+          display: "flex", flexWrap: "wrap", gap: 6, flexShrink: 0,
+        }}>
+          {[
+            { color: "#a78bfa", label: "Buildings" },
+            { color: "#166534", label: "Forest" },
+            { color: "#0ea5e9", label: "Water" },
+            { color: "#ca8a04", label: "Farmland" },
+            { color: "#86efac", label: "Parks" },
+            { color: "#38bdf8", label: "Waterways" },
+            { color: "#fbbf24", label: "Motorway" },
+            { color: "#f97316", label: "Primary" },
+            { color: "#e2e8f0", label: "Streets" },
+            { color: "#7dd3fc", label: "Paths" },
+          ].map(({ color, label }) => (
+            <span key={label} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#94a3b8" }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: color, display: "inline-block" }} />
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div style={{ overflowY: "auto", padding: "12px 14px", flex: 1 }}>
         {loading && (
           <div style={{ textAlign: "center", color: "#64748b", padding: "24px 0" }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>

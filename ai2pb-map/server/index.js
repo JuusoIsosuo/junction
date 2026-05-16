@@ -91,7 +91,6 @@ app.post("/api/osm", async (req, res) => {
   way["leisure"~"^(park|garden|nature_reserve|playground|golf_course|pitch)$"](${b});
   node["leisure"~"^(park|garden|nature_reserve|playground|golf_course|pitch)$"](${b});
   way["waterway"~"^(river|stream|canal|drain|ditch)$"](${b});
-  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|service|unclassified|living_street|footway|cycleway|path|track)$"](${b});
 )
 ;
 out geom tags;

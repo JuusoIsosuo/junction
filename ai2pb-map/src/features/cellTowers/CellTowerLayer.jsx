@@ -1,0 +1,127 @@
+import { useEffect, useRef } from "react";
+import { geoCircle } from "../../utils/geo";
+
+export const RADIO_COLORS = {
+  GSM:     '#f59e0b',
+  UMTS:    '#3b82f6',
+  LTE:     '#10b981',
+  NR:      '#a855f7',
+  CDMA:    '#f97316',
+  unknown: '#6b7280',
+};
+
+const SRC_COVERAGE       = 'cell-coverage';
+const SRC_TOWERS         = 'cell-towers';
+const LAYER_COV_FILL     = 'cell-coverage-fill';
+const LAYER_COV_LINE     = 'cell-coverage-line';
+const LAYER_TOWERS       = 'cell-towers-dots';
+const LAYER_TOWERS_LABEL = 'cell-towers-label';
+
+const EMPTY = { type: 'FeatureCollection', features: [] };
+
+function buildCoverageCollection(towers) {
+  return {
+    type: 'FeatureCollection',
+    features: towers.map((t) => {
+      const feat = geoCircle(t.lon, t.lat, Math.max(t.range, 100));
+      feat.properties = { radio: t.radio, color: RADIO_COLORS[t.radio] ?? '#6b7280' };
+      return feat;
+    }),
+  };
+}
+
+function buildTowerCollection(towers) {
+  return {
+    type: 'FeatureCollection',
+    features: towers.map((t) => ({
+      type: 'Feature',
+      properties: {
+        radio: t.radio,
+        color: RADIO_COLORS[t.radio] ?? '#6b7280',
+        label: t.operator ? `${t.radio} · ${t.operator}` : t.radio,
+      },
+      geometry: { type: 'Point', coordinates: [t.lon, t.lat] },
+    })),
+  };
+}
+
+function addLayers(map) {
+  if (!map.getSource(SRC_COVERAGE)) {
+    map.addSource(SRC_COVERAGE, { type: 'geojson', data: EMPTY });
+    map.addLayer({ id: LAYER_COV_FILL, type: 'fill', source: SRC_COVERAGE,
+      paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.08 } });
+    map.addLayer({ id: LAYER_COV_LINE, type: 'line', source: SRC_COVERAGE,
+      paint: { 'line-color': ['get', 'color'], 'line-width': 1, 'line-opacity': 0.5 } });
+  }
+  if (!map.getSource(SRC_TOWERS)) {
+    map.addSource(SRC_TOWERS, { type: 'geojson', data: EMPTY });
+    map.addLayer({ id: LAYER_TOWERS, type: 'circle', source: SRC_TOWERS,
+      paint: { 'circle-color': ['get', 'color'], 'circle-radius': 5,
+        'circle-stroke-width': 1.5, 'circle-stroke-color': '#ffffff', 'circle-opacity': 0.9 } });
+    map.addLayer({ id: LAYER_TOWERS_LABEL, type: 'symbol', source: SRC_TOWERS, minzoom: 11,
+      layout: { 'text-field': ['get', 'radio'], 'text-size': 9, 'text-offset': [0, 1.2], 'text-anchor': 'top' },
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000', 'text-halo-width': 1 } });
+  }
+}
+
+function removeLayers(map) {
+  for (const id of [LAYER_TOWERS_LABEL, LAYER_TOWERS, LAYER_COV_LINE, LAYER_COV_FILL]) {
+    if (map.getLayer(id)) map.removeLayer(id);
+  }
+  for (const id of [SRC_COVERAGE, SRC_TOWERS]) {
+    if (map.getSource(id)) map.removeSource(id);
+  }
+}
+
+function pushData(map, towers) {
+  map.getSource(SRC_COVERAGE)?.setData(buildCoverageCollection(towers));
+  map.getSource(SRC_TOWERS)?.setData(buildTowerCollection(towers));
+}
+
+function pushVisibility(map, enabled) {
+  const v = enabled ? 'visible' : 'none';
+  for (const id of [LAYER_COV_FILL, LAYER_COV_LINE, LAYER_TOWERS, LAYER_TOWERS_LABEL]) {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v);
+  }
+}
+
+export function CellTowerLayer({ map, data, enabled }) {
+  const pendingData = useRef(null);
+  const pendingEnabled = useRef(enabled);
+
+  useEffect(() => {
+    if (!map) return;
+
+    function setup() {
+      addLayers(map);
+      // Flush any data/visibility that arrived before layers were ready
+      pushData(map, pendingData.current?.towers ?? []);
+      pushVisibility(map, pendingEnabled.current);
+    }
+
+    if (map.isStyleLoaded()) {
+      setup();
+    } else {
+      map.once('load', setup);
+    }
+
+    return () => {
+      map.off('load', setup);
+      removeLayers(map);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    pendingData.current = data;
+    if (!map || !map.getSource(SRC_TOWERS)) return;
+    pushData(map, data?.towers ?? []);
+  }, [map, data]);
+
+  useEffect(() => {
+    pendingEnabled.current = enabled;
+    if (!map || !map.getLayer(LAYER_TOWERS)) return;
+    pushVisibility(map, enabled);
+  }, [map, enabled]);
+
+  return null;
+}

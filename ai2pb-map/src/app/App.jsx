@@ -4,6 +4,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import mapboxgl from "../services/mapbox";
 import WeatherPanel from "../features/weather/WeatherPanel";
 import { IntelPanel } from "../features/intel/IntelPanel";
+import AnalysisPanel from "../features/analysis/AnalysisPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
 import { fetchCellTowers } from "../services/cellTowerService";
 import { fetchRoads } from "../services/roadsService";
@@ -66,9 +67,11 @@ function App() {
   const [bridgesLoading, setBridgesLoading] = useState(false);
   const [bridgesError, setBridgesError]   = useState(null);
 
-  const [osmData, setOsmData]       = useState(null);
-  const [osmLoading, setOsmLoading] = useState(false);
-  const [osmError, setOsmError]     = useState(null);
+  const [osmData, setOsmData]           = useState(null);
+  const [osmElements, setOsmElements]   = useState([]);
+  const [osmLoading, setOsmLoading]     = useState(false);
+  const [osmError, setOsmError]         = useState(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   const [elevData, setElevData]       = useState(null);
   const [elevLoading, setElevLoading] = useState(false);
@@ -128,8 +131,10 @@ function App() {
       setRoadsData(null);
       setBridgesData(null);
       setOsmData(null);
+      setOsmElements([]);
       setElevData(null);
       setShowWeather(false);
+      setShowAnalysis(false);
       const src = map.current.getSource("drawn-area");
       if (src) src.setData({ type: "FeatureCollection", features: [] });
     });
@@ -255,6 +260,7 @@ function App() {
     setOsmData(null); setOsmLoading(true); setOsmError(null);
     fetchOsm({ bbox: queriedBbox, signal: ctl.signal })
       .then((elements) => {
+        setOsmElements(elements);
         setOsmData({ geojson: osmToGeoJSON(elements), counts: parseOSMCounts(elements), total: elements.length });
         setOsmLoading(false);
       })
@@ -297,7 +303,7 @@ function App() {
     setBbox(null);
     setQueriedBbox(null);
     setTowerData(null); setRoadsData(null); setBridgesData(null);
-    setOsmData(null); setElevData(null); setShowWeather(false);
+    setOsmData(null); setOsmElements([]); setElevData(null); setShowWeather(false); setShowAnalysis(false);
     const src = map.current?.getSource("drawn-area");
     if (src) src.setData({ type: "FeatureCollection", features: [] });
     draw.current.changeMode("simple_select");
@@ -474,6 +480,16 @@ function App() {
                   ⬡  Gather Intel
                 </button>
 
+                {queriedBbox && (
+                  <button onClick={() => setShowAnalysis(true)} style={{
+                    width: "100%", padding: "10px", borderRadius: "7px",
+                    border: "1.5px solid #a78bfa", background: "rgba(167,139,250,0.12)",
+                    color: "#a78bfa", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+                  }}>
+                    🧠  Analyze with AI
+                  </button>
+                )}
+
                 <button onClick={() => setShowWeather(true)} style={{
                   width: "100%", padding: "10px", borderRadius: "7px",
                   border: "1.5px solid #34d399", background: "rgba(52,211,153,0.12)",
@@ -507,6 +523,16 @@ function App() {
 
       {showWeather && centerLat && centerLng && (
         <WeatherPanel lat={centerLat} lng={centerLng} onClose={() => setShowWeather(false)} />
+      )}
+
+      {showAnalysis && bbox && (
+        <AnalysisPanel
+          elements={osmElements}
+          bbox={bbox}
+          towerData={towerData}
+          roadsData={roadsData}
+          onClose={() => setShowAnalysis(false)}
+        />
       )}
     </div>
   );

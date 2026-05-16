@@ -722,6 +722,8 @@ function App() {
           bbox={bbox}
           towerData={towerData}
           roadsData={roadsData}
+          elevData={elevData}
+          bridgesData={bridgesData}
           onClose={() => setShowAnalysis(false)}
         />
       )}

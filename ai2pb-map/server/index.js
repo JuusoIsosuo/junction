@@ -142,17 +142,33 @@ app.post("/api/analyze", async (req, res) => {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 4096,
+        max_tokens: 16384,
         messages: [{
           role: "user",
-          content: `You are a terrain analyst. Analyze this OSM area data and give a SHORT structured report with these sections:
+          content: `You are a military terrain analyst. Produce a tactical terrain assessment using ONLY the data provided below. Use exactly these five sections. Each section: 3–5 bullet points, one sentence each, max 35 words per bullet.
 
-**Chokepoints** — 2-3 bullet points max, each one sentence.
-**Barriers** — 2-3 bullet points max on water/forest/terrain blocking movement.
-**Key roads** — 1-2 bullet points on critical corridors.
-**Notable features** — 1-2 bullet points only if something stands out.
+MANDATORY RULES — violation makes the output useless:
+- Every bullet MUST cite a specific named feature from the data: a road name, bridge name, settlement name, waterway name, or coordinate. No generalities.
+- If a bridge is named, use its name. If a road is named, use its name. If a settlement is present, name it.
+- Use coordinates (e.g. 60.1234°N 24.5678°E) when no name is available.
+- Do NOT say "the area", "some bridges", "roads in the region", "elevated terrain" — point to the exact feature.
+- No intro sentence, no conclusion, no filler. Start each section directly with bullets.
+- If a section truly has no usable data, write one bullet: "Insufficient data."
 
-Rules: no intro, no conclusion, no filler. Bullets only. Each bullet max 20 words. If data is sparse, say so in one line.
+## Logistics Chokepoints
+Which specific bridges, road junctions, river crossings, or narrow corridors constrain movement? Name them and give their location.
+
+## Logistics & Medical Support
+Which named settlements or road segments enable resupply and casualty evacuation? Note road type and access constraints.
+
+## Force Movement & Cover
+Which named roads allow fast movement? Which forest areas, settlements, or elevation features (cite coordinates) provide cover from ground and air observation?
+
+## Defensive Terrain
+Which specific high points (coordinates), built-up areas, or river lines enable fortification, observation, or concealment from air/satellite/ELINT?
+
+## Weather Impact
+How will the specific forecast conditions affect mobility on named road types, visibility, air operations, and troop welfare over the coming days?
 
 AREA DATA:
 ${summary}`,
@@ -168,7 +184,8 @@ ${summary}`,
 
     const data = await response.json();
     const msg = data.choices?.[0]?.message;
-    const analysis = msg?.content || msg?.reasoning || "No response from model.";
+    // content = actual answer, reasoning = chain-of-thought (model separates them)
+    const analysis = msg?.content || "No response from model.";
     res.json({ analysis, summary });
   } catch (err) {
     res.status(500).send(err.message || "Analysis error");

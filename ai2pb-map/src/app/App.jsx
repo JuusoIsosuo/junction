@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import mapboxgl from "mapbox-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
-import WeatherPanel from "./WeatherPanel";
-import OSMPanel from "./OSMPanel";
+import mapboxgl from "../services/mapbox";
+import WeatherPanel from "../features/weather/WeatherPanel";
+import OSMPanel from "../features/osm/OSMPanel";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
-
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 function App() {
   const mapContainer = useRef(null);
@@ -88,7 +86,10 @@ function App() {
       const data = draw.current.getAll();
       if (data.features.length > 0) {
         const coords = data.features[0].geometry.coordinates[0];
-        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+        let minLng = Infinity;
+        let minLat = Infinity;
+        let maxLng = -Infinity;
+        let maxLat = -Infinity;
         coords.forEach(([lng, lat]) => {
           if (lng < minLng) minLng = lng;
           if (lng > maxLng) maxLng = lng;
@@ -108,6 +109,12 @@ function App() {
       setShowWeather(false);
       setShowOSM(false);
     });
+
+    return () => {
+      map.current.remove();
+      map.current = null;
+      draw.current = null;
+    };
   }, []);
 
   const fmt = (n) => n?.toFixed(5);
@@ -122,10 +129,16 @@ function App() {
       {/* Left panel */}
       <div
         style={{
-          position: "absolute", top: 20, left: 20,
-          background: "rgba(0,0,0,0.85)", color: "white",
-          padding: "16px", borderRadius: "10px", zIndex: 1,
-          width: "300px", fontFamily: "Arial",
+          position: "absolute",
+          top: 20,
+          left: 20,
+          background: "rgba(0,0,0,0.85)",
+          color: "white",
+          padding: "16px",
+          borderRadius: "10px",
+          zIndex: 1,
+          width: "300px",
+          fontFamily: "Arial",
           boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
         }}
       >
@@ -134,12 +147,19 @@ function App() {
         <button
           onClick={isPainting ? clearArea : activatePaint}
           style={{
-            width: "100%", padding: "10px", borderRadius: "7px",
+            width: "100%",
+            padding: "10px",
+            borderRadius: "7px",
             border: isPainting ? "1.5px solid #f87171" : "1.5px solid #38bdf8",
-            background: isPainting ? "rgba(248,113,113,0.15)" : "rgba(56,189,248,0.15)",
+            background: isPainting
+              ? "rgba(248,113,113,0.15)"
+              : "rgba(56,189,248,0.15)",
             color: isPainting ? "#f87171" : "#38bdf8",
-            fontFamily: "Arial", fontSize: 13, fontWeight: "bold",
-            cursor: "pointer", marginBottom: "12px",
+            fontFamily: "Arial",
+            fontSize: 13,
+            fontWeight: "bold",
+            cursor: "pointer",
+            marginBottom: "12px",
           }}
         >
           {isPainting ? "✕  Cancel Painting" : "⬚  Paint Area"}
@@ -153,7 +173,8 @@ function App() {
 
         {!isPainting && !bbox && (
           <p style={{ fontSize: 13, color: "#94a3b8" }}>
-            Press <span style={{ color: "#38bdf8" }}>Paint Area</span> then draw a shape on the map.
+            Press <span style={{ color: "#38bdf8" }}>Paint Area</span> then draw a
+            shape on the map.
           </p>
         )}
 
@@ -161,36 +182,65 @@ function App() {
           <>
             <div
               style={{
-                background: "rgba(255,255,255,0.05)", borderRadius: 6,
-                padding: "10px 12px", fontSize: 13, marginBottom: 10,
+                background: "rgba(255,255,255,0.05)",
+                borderRadius: 6,
+                padding: "10px 12px",
+                fontSize: 13,
+                marginBottom: 10,
               }}
             >
               {[
                 ["Min Longitude", fmt(bbox.minLng)],
-                ["Min Latitude",  fmt(bbox.minLat)],
+                ["Min Latitude", fmt(bbox.minLat)],
                 ["Max Longitude", fmt(bbox.maxLng)],
-                ["Max Latitude",  fmt(bbox.maxLat)],
+                ["Max Latitude", fmt(bbox.maxLat)],
               ].map(([label, val]) => (
-                <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <div
+                  key={label}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "4px 0",
+                    borderBottom: "1px solid rgba(255,255,255,0.06)",
+                  }}
+                >
                   <span style={{ color: "#94a3b8" }}>{label}</span>
                   <span style={{ fontWeight: "bold" }}>{val}</span>
                 </div>
               ))}
             </div>
 
-            <div style={{ fontSize: 11, color: "#7dd3fc", background: "rgba(56,189,248,0.07)", borderRadius: 6, padding: "7px 10px", marginBottom: 10, wordBreak: "break-all" }}>
-              [{fmt(bbox.minLng)}, {fmt(bbox.minLat)}, {fmt(bbox.maxLng)}, {fmt(bbox.maxLat)}]
+            <div
+              style={{
+                fontSize: 11,
+                color: "#7dd3fc",
+                background: "rgba(56,189,248,0.07)",
+                borderRadius: 6,
+                padding: "7px 10px",
+                marginBottom: 10,
+                wordBreak: "break-all",
+              }}
+            >
+              [{fmt(bbox.minLng)}, {fmt(bbox.minLat)}, {fmt(bbox.maxLng)},
+              {fmt(bbox.maxLat)}]
             </div>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <button
                 onClick={copyBbox}
                 style={{
-                  flex: 1, padding: "8px", borderRadius: 6,
+                  flex: 1,
+                  padding: "8px",
+                  borderRadius: 6,
                   border: "1px solid rgba(56,189,248,0.4)",
-                  background: copied ? "rgba(56,189,248,0.2)" : "rgba(56,189,248,0.08)",
-                  color: "#38bdf8", fontFamily: "Arial", fontSize: 12,
-                  fontWeight: "bold", cursor: "pointer",
+                  background: copied
+                    ? "rgba(56,189,248,0.2)"
+                    : "rgba(56,189,248,0.08)",
+                  color: "#38bdf8",
+                  fontFamily: "Arial",
+                  fontSize: 12,
+                  fontWeight: "bold",
+                  cursor: "pointer",
                 }}
               >
                 {copied ? "✓ Copied!" : "Copy JSON"}
@@ -198,11 +248,16 @@ function App() {
               <button
                 onClick={clearArea}
                 style={{
-                  flex: 1, padding: "8px", borderRadius: 6,
+                  flex: 1,
+                  padding: "8px",
+                  borderRadius: 6,
                   border: "1px solid rgba(255,255,255,0.1)",
                   background: "rgba(255,255,255,0.05)",
-                  color: "#64748b", fontFamily: "Arial", fontSize: 12,
-                  fontWeight: "bold", cursor: "pointer",
+                  color: "#64748b",
+                  fontFamily: "Arial",
+                  fontSize: 12,
+                  fontWeight: "bold",
+                  cursor: "pointer",
                 }}
               >
                 Clear
@@ -213,11 +268,17 @@ function App() {
             <button
               onClick={() => setShowWeather(true)}
               style={{
-                width: "100%", padding: "10px", borderRadius: "7px",
+                width: "100%",
+                padding: "10px",
+                borderRadius: "7px",
                 border: "1.5px solid #34d399",
                 background: "rgba(52,211,153,0.12)",
-                color: "#34d399", fontFamily: "Arial", fontSize: 13,
-                fontWeight: "bold", cursor: "pointer", marginBottom: 8,
+                color: "#34d399",
+                fontFamily: "Arial",
+                fontSize: 13,
+                fontWeight: "bold",
+                cursor: "pointer",
+                marginBottom: 8,
               }}
             >
               ☁ Fetch Weather Data
@@ -227,11 +288,16 @@ function App() {
             <button
               onClick={() => setShowOSM(true)}
               style={{
-                width: "100%", padding: "10px", borderRadius: "7px",
+                width: "100%",
+                padding: "10px",
+                borderRadius: "7px",
                 border: "1.5px solid #f97316",
                 background: "rgba(249,115,22,0.12)",
-                color: "#f97316", fontFamily: "Arial", fontSize: 13,
-                fontWeight: "bold", cursor: "pointer",
+                color: "#f97316",
+                fontFamily: "Arial",
+                fontSize: 13,
+                fontWeight: "bold",
+                cursor: "pointer",
               }}
             >
               🌿 Fetch Nature & Buildings
@@ -251,12 +317,8 @@ function App() {
 
       {/* OSM panel */}
       {showOSM && bbox && (
-  <OSMPanel
-    bbox={bbox}
-    map={map.current}
-    onClose={() => setShowOSM(false)}
-  />
-)}
+        <OSMPanel bbox={bbox} map={map.current} onClose={() => setShowOSM(false)} />
+      )}
     </div>
   );
 }

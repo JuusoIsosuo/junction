@@ -10,6 +10,18 @@ const AGE_GROUPS = [
 
 export { AGE_GROUPS };
 
+// Suomen bbox
+const FINLAND_BBOX = { minLng: 19.0, minLat: 59.4, maxLng: 31.6, maxLat: 70.1 };
+
+function isInsideFinland(bbox) {
+  const centerLat = (bbox.minLat + bbox.maxLat) / 2;
+  const centerLng = (bbox.minLng + bbox.maxLng) / 2;
+  return (
+    centerLat >= FINLAND_BBOX.minLat && centerLat <= FINLAND_BBOX.maxLat &&
+    centerLng >= FINLAND_BBOX.minLng && centerLng <= FINLAND_BBOX.maxLng
+  );
+}
+
 function bboxAreaKm2(bbox) {
   const latRad = ((bbox.minLat + bbox.maxLat) / 2) * (Math.PI / 180);
   const widthKm = (bbox.maxLng - bbox.minLng) * Math.cos(latRad) * 111.32;
@@ -34,6 +46,34 @@ function buildResult(total, source, estimated = false) {
   };
 }
 
+// Tilastokeskus väestöruututilasto — 1km² tarkkuus, koko Suomi
+async function fetchStatsFiPopulation(bbox, signal) {
+  const url = new URL('https://geo.stat.fi/geoserver/vaestoruutu/wfs');
+  url.searchParams.set('service', 'WFS');
+  url.searchParams.set('version', '2.0.0');
+  url.searchParams.set('request', 'GetFeature');
+  url.searchParams.set('typeName', 'vaestoruutu:vaki2022_1km');
+  url.searchParams.set('bbox', `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat},EPSG:4326`);
+  url.searchParams.set('outputFormat', 'application/json');
+  url.searchParams.set('srsName', 'EPSG:4326');
+
+  const res = await fetch(url.toString(), { signal });
+  if (!res.ok) throw new Error(`StatsFi ${res.status}`);
+
+  const json = await res.json();
+  if (!json.features?.length) throw new Error('no features');
+
+  let total = 0;
+  for (const f of json.features) {
+    const pop = f.properties?.vaesto ?? 0;
+    if (pop > 0) total += pop;
+  }
+  if (total === 0) throw new Error('no population data');
+
+  return buildResult(total, 'Tilastokeskus 2022');
+}
+
+// OSM place-nodet muille alueille
 async function fetchOsmPopulation(bbox, signal) {
   const query = `
     [out:json][timeout:20];
@@ -55,21 +95,28 @@ async function fetchOsmPopulation(bbox, signal) {
     const pop = parseInt(el.tags?.population ?? '0', 10);
     if (!isNaN(pop)) total += pop;
   }
-  return total;
+  if (total === 0) throw new Error('no population data');
+  return buildResult(total, 'OSM (taajama-arvot)');
 }
 
 export async function fetchPopulation({ bbox, signal }) {
-  try {
-    const osmTotal = await fetchOsmPopulation(bbox, signal);
-    if (osmTotal > 0) {
-      return buildResult(osmTotal, 'OSM (taajama-arvot)');
+  if (isInsideFinland(bbox)) {
+    try {
+      return await fetchStatsFiPopulation(bbox, signal);
+    } catch (err) {
+      if (err.name === 'AbortError') throw err;
+      // fall through to density estimate
     }
-  } catch (err) {
-    if (err.name === 'AbortError') throw err;
-    // fall through to density estimate
+  } else {
+    try {
+      return await fetchOsmPopulation(bbox, signal);
+    } catch (err) {
+      if (err.name === 'AbortError') throw err;
+      // fall through to density estimate
+    }
   }
 
-  // Fallback: area × Finland average population density (18/km²)
+  // Viimeinen varasuunnitelma: pinta-ala × tiheys
   const area = bboxAreaKm2(bbox);
   return buildResult(area * 18, 'arvio (18 hlö/km²)', true);
 }

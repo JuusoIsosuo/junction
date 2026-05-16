@@ -10,41 +10,20 @@ const AGE_GROUPS = [
 
 export { AGE_GROUPS };
 
-export async function fetchPopulation({ bbox, signal }) {
-  const polygon = {
-    type: 'Polygon',
-    coordinates: [[
-      [bbox.minLng, bbox.minLat],
-      [bbox.maxLng, bbox.minLat],
-      [bbox.maxLng, bbox.maxLat],
-      [bbox.minLng, bbox.maxLat],
-      [bbox.minLng, bbox.minLat],
-    ]],
-  };
+function bboxAreaKm2(bbox) {
+  const latRad = ((bbox.minLat + bbox.maxLat) / 2) * (Math.PI / 180);
+  const widthKm = (bbox.maxLng - bbox.minLng) * Math.cos(latRad) * 111.32;
+  const heightKm = (bbox.maxLat - bbox.minLat) * 110.574;
+  return Math.abs(widthKm * heightKm);
+}
 
-  const params = new URLSearchParams({
-    dataset: 'wpgp',
-    iso3: 'FIN',
-    year: 2020,
-    geojson: JSON.stringify(polygon),
-    runasync: 'false',
-  });
-
-  const res = await fetch(
-    `https://api.worldpop.org/v1/services/stats?${params}`,
-    { signal }
-  );
-  if (!res.ok) throw new Error(`WorldPop API ${res.status}`);
-
-  const json = await res.json();
-  const total = json?.data?.total_population;
-  if (total == null) throw new Error('Ei väestödataa tälle alueelle');
-
+function buildResult(total, source) {
   const rounded = Math.round(total);
   return {
     total: rounded,
     male: Math.round(rounded * 0.495),
     female: Math.round(rounded * 0.505),
+    source,
     ageGroups: AGE_GROUPS.map(({ group, share, color }) => ({
       group,
       count: Math.round(rounded * share),
@@ -52,4 +31,55 @@ export async function fetchPopulation({ bbox, signal }) {
       color,
     })),
   };
+}
+
+async function fetchFromWorldPop(bbox, signal) {
+  // WorldPop expects a GeoJSON Feature, not a bare geometry
+  const geojson = {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[
+        [bbox.minLng, bbox.minLat],
+        [bbox.maxLng, bbox.minLat],
+        [bbox.maxLng, bbox.maxLat],
+        [bbox.minLng, bbox.maxLat],
+        [bbox.minLng, bbox.minLat],
+      ]],
+    },
+  };
+
+  const params = new URLSearchParams({
+    dataset: 'wpgp',
+    iso3: 'FIN',
+    year: 2020,
+    geojson: JSON.stringify(geojson),
+    runasync: 'false',
+  });
+
+  const res = await fetch(
+    `https://api.worldpop.org/v1/services/stats?${params}`,
+    { signal }
+  );
+  if (!res.ok) throw new Error(`WorldPop ${res.status}`);
+
+  const json = await res.json();
+  const total = json?.data?.total_population;
+  if (total == null || total === 0) throw new Error('no data');
+
+  return buildResult(total, 'WorldPop 2020');
+}
+
+export async function fetchPopulation({ bbox, signal }) {
+  try {
+    return await fetchFromWorldPop(bbox, signal);
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+
+    // Fallback: estimate from area × Finland average density (18/km²)
+    const area = bboxAreaKm2(bbox);
+    const estimated = area * 18;
+    return { ...buildResult(estimated, 'arvio (18 hlö/km²)'), estimated: true };
+  }
 }

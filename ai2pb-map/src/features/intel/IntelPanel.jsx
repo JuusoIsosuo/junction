@@ -157,7 +157,7 @@ export function IntelPanel({
                 })()}
               </div>
               <div style={{ fontSize: 10, color: '#4b5563', fontFamily: 'monospace' }}>
-                Lähde: WorldPop 2020 · ikäjakauma: Tilastokeskus 2023
+                {population.estimated ? 'Arvio pinta-alasta' : 'WorldPop 2020'} · ikäjakauma: Tilastokeskus 2023
               </div>
             </>
           )}

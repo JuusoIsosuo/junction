@@ -22,7 +22,7 @@ import {
 } from "../features/bridges/bridgeLayer";
 import {
   addOSMLayers, removeOSMLayers,
-  updateOSMData, updateOSMVisibility,
+  updateOSMData, updateBuildingsVisibility, updateNatureVisibility,
   toGeoJSON as osmToGeoJSON, parseOSMCounts,
 } from "../features/osm/osmLayer";
 import {
@@ -45,7 +45,7 @@ function App() {
   const [copied, setCopied] = useState(false);
 
   const [enabledLayers, setEnabledLayers] = useState({
-    cellTowers: true, roads: true, bridges: true, osm: true, elevation: true,
+    cellTowers: true, roads: true, bridges: true, buildings: true, nature: true, elevation: true,
   });
   const [queriedBbox, setQueriedBbox] = useState(null);
 
@@ -185,7 +185,8 @@ function App() {
     updateCellTowerVisibility(mapInstance, enabledLayers.cellTowers);
     updateRoadsVisibility(mapInstance, enabledLayers.roads);
     updateBridgeVisibility(mapInstance, enabledLayers.bridges);
-    updateOSMVisibility(mapInstance, enabledLayers.osm);
+    updateBuildingsVisibility(mapInstance, enabledLayers.buildings);
+    updateNatureVisibility(mapInstance, enabledLayers.nature);
     updateElevationVisibility(mapInstance, enabledLayers.elevation);
   }, [mapInstance, enabledLayers]);
 

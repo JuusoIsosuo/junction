@@ -168,27 +168,44 @@ export function IntelPanel({
         </div>
       )}
 
-      {/* Nature & Buildings */}
-      {enabledLayers.osm && (
+      {/* Buildings */}
+      {enabledLayers.buildings && (
         <div style={sec}>
-          <SectionHeader color="#a78bfa" label="Nature & Buildings" />
+          <SectionHeader color="#a78bfa" label="Buildings" />
           <StatusRow loading={osmLoading} error={osmError} />
           {osm && !osmLoading && (
             <>
-              <BigNum value={osm.total} unit="elements" />
+              <BigNum value={osm.counts.buildings} unit="buildings" />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {[
-                  { label: 'Buildings', color: '#a78bfa', count: osm.counts.buildings },
-                  { label: 'Natural',   color: '#34d399', count: osm.counts.natural },
-                  { label: 'Land use',  color: '#6ee7b7', count: osm.counts.landuse },
-                  { label: 'Leisure',   color: '#86efac', count: osm.counts.leisure },
-                  { label: 'Waterways', color: '#38bdf8', count: osm.counts.waterway },
-                  { label: 'Roads',     color: '#f97316', count: osm.counts.roads },
-                ].filter((r) => r.count > 0).map((r) => (
-                  <BreakdownRow key={r.label} color={r.color} label={r.label} count={r.count} />
-                ))}
+                {Object.entries(osm.counts.buildingTypes ?? {})
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 6)
+                  .map(([type, count]) => (
+                    <BreakdownRow key={type} color="#a78bfa" label={type} count={count} />
+                  ))}
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {/* Nature */}
+      {enabledLayers.nature && (
+        <div style={sec}>
+          <SectionHeader color="#34d399" label="Nature" />
+          <StatusRow loading={osmLoading} error={osmError} />
+          {osm && !osmLoading && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {[
+                { label: 'Natural',   color: '#34d399', count: osm.counts.natural },
+                { label: 'Land use',  color: '#6ee7b7', count: osm.counts.landuse },
+                { label: 'Leisure',   color: '#86efac', count: osm.counts.leisure },
+                { label: 'Waterways', color: '#38bdf8', count: osm.counts.waterway },
+                { label: 'Roads',     color: '#f97316', count: osm.counts.roads },
+              ].filter((r) => r.count > 0).map((r) => (
+                <BreakdownRow key={r.label} color={r.color} label={r.label} count={r.count} />
+              ))}
+            </div>
           )}
         </div>
       )}

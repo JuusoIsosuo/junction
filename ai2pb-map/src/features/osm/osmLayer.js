@@ -74,13 +74,15 @@ export function toGeoJSON(elements) {
     }
 
     if (geometry) {
+      // For buildings tagged simply as "yes", suppress the tag as a label — use name only
+      const buildingLabel = tags.building && tags.building !== 'yes' ? tags.building : '';
       features.push({
         type: 'Feature', geometry,
         properties: {
           ...tags,
           _featureType: featureType,
           _color: color,
-          _name: tags.name || tags.building || tags.natural || tags.landuse || tags.leisure || tags.waterway || '',
+          _name: tags.name || buildingLabel || tags.natural || tags.landuse || tags.leisure || tags.waterway || '',
           _highwayType: tags.highway || '',
         },
       });
@@ -90,10 +92,15 @@ export function toGeoJSON(elements) {
 }
 
 export function parseOSMCounts(elements) {
-  const counts = { buildings: 0, natural: 0, landuse: 0, leisure: 0, waterway: 0, roads: 0 };
+  const buildingTypes = {};
+  const counts = { buildings: 0, natural: 0, landuse: 0, leisure: 0, waterway: 0, roads: 0, buildingTypes };
   for (const el of elements) {
     const tags = el.tags || {};
-    if (tags.building) counts.buildings++;
+    if (tags.building) {
+      counts.buildings++;
+      const type = tags.building === 'yes' ? 'unclassified' : tags.building;
+      buildingTypes[type] = (buildingTypes[type] ?? 0) + 1;
+    }
     if (tags.natural)  counts.natural++;
     if (tags.landuse)  counts.landuse++;
     if (tags.leisure)  counts.leisure++;
@@ -104,46 +111,72 @@ export function parseOSMCounts(elements) {
 }
 
 // ── Mapbox layer IDs ───────────────────────────────────────────────────────────
-const OSM_SOURCE        = 'osm-features';
-const LAYER_FILLS       = 'osm-fills';
-const LAYER_ROAD_CASING = 'osm-road-casing';
-const LAYER_ROADS       = 'osm-roads';
-const LAYER_LINES       = 'osm-lines';
-const LAYER_POINTS      = 'osm-points';
-const LAYER_LABELS      = 'osm-labels';
-const ALL_LAYERS = [LAYER_LABELS, LAYER_POINTS, LAYER_LINES, LAYER_ROADS, LAYER_ROAD_CASING, LAYER_FILLS];
+const OSM_SOURCE = 'osm-features';
+
+// Buildings layers
+const LAYER_BLDG_FILL  = 'osm-bldg-fill';
+const LAYER_BLDG_LINE  = 'osm-bldg-line';
+const LAYER_BLDG_LABEL = 'osm-bldg-label';
+const BLDG_LAYERS = [LAYER_BLDG_LABEL, LAYER_BLDG_LINE, LAYER_BLDG_FILL];
+
+// Nature layers
+const LAYER_NAT_FILL    = 'osm-nat-fill';
+const LAYER_NAT_RCASING = 'osm-nat-road-casing';
+const LAYER_NAT_ROADS   = 'osm-nat-roads';
+const LAYER_NAT_LINES   = 'osm-nat-lines';
+const LAYER_NAT_POINTS  = 'osm-nat-points';
+const LAYER_NAT_LABEL   = 'osm-nat-label';
+const NAT_LAYERS = [LAYER_NAT_LABEL, LAYER_NAT_POINTS, LAYER_NAT_LINES, LAYER_NAT_ROADS, LAYER_NAT_RCASING, LAYER_NAT_FILL];
+
 const ROAD_TYPES = ['road_motorway','road_trunk','road_primary','road_secondary','road_tertiary','road_residential','road_service','road_path','road_other'];
+const IS_BUILDING = ['==', ['get', '_featureType'], 'buildings'];
+const NOT_BUILDING = ['!=', ['get', '_featureType'], 'buildings'];
 
 export function addOSMLayers(map) {
   if (map.getSource(OSM_SOURCE)) return;
   map.addSource(OSM_SOURCE, { type: 'geojson', data: EMPTY });
 
-  map.addLayer({ id: LAYER_FILLS, type: 'fill', source: OSM_SOURCE,
-    filter: ['==', '$type', 'Polygon'],
-    paint: { 'fill-color': ['get', '_color'], 'fill-opacity': ['case', ['==', ['get', '_featureType'], 'buildings'], 0.75, 0.35], 'fill-outline-color': ['get', '_color'] } });
+  // ── Buildings ──────────────────────────────────────────────────────
+  map.addLayer({ id: LAYER_BLDG_FILL, type: 'fill', source: OSM_SOURCE,
+    filter: ['all', ['==', '$type', 'Polygon'], IS_BUILDING],
+    paint: { 'fill-color': ['get', '_color'], 'fill-opacity': 0.75, 'fill-outline-color': ['get', '_color'] } });
 
-  map.addLayer({ id: LAYER_ROAD_CASING, type: 'line', source: OSM_SOURCE,
+  map.addLayer({ id: LAYER_BLDG_LINE, type: 'line', source: OSM_SOURCE,
+    filter: IS_BUILDING,
+    paint: { 'line-color': ['get', '_color'], 'line-width': 1.5, 'line-opacity': 0.9 } });
+
+  map.addLayer({ id: LAYER_BLDG_LABEL, type: 'symbol', source: OSM_SOURCE,
+    filter: ['all', IS_BUILDING, ['!=', ['get', '_name'], '']],
+    layout: { 'text-field': ['get', '_name'], 'text-size': 10, 'text-anchor': 'center', 'text-max-width': 8 },
+    paint: { 'text-color': '#ffffff', 'text-halo-color': '#000000', 'text-halo-width': 1.5 } });
+
+  // ── Nature ────────────────────────────────────────────────────────
+  map.addLayer({ id: LAYER_NAT_FILL, type: 'fill', source: OSM_SOURCE,
+    filter: ['all', ['==', '$type', 'Polygon'], NOT_BUILDING],
+    paint: { 'fill-color': ['get', '_color'], 'fill-opacity': 0.35, 'fill-outline-color': ['get', '_color'] } });
+
+  map.addLayer({ id: LAYER_NAT_RCASING, type: 'line', source: OSM_SOURCE,
     filter: ['in', ['get', '_featureType'], ['literal', ROAD_TYPES]],
     paint: { 'line-color': '#000000', 'line-opacity': 0.4,
       'line-width': ['match', ['get', '_featureType'], 'road_motorway', 9, 'road_trunk', 8, 'road_primary', 7, 'road_secondary', 6, 'road_tertiary', 5, 'road_residential', 4, 'road_service', 3, 'road_path', 2, 3],
       'line-cap': 'round', 'line-join': 'round' } });
 
-  map.addLayer({ id: LAYER_ROADS, type: 'line', source: OSM_SOURCE,
+  map.addLayer({ id: LAYER_NAT_ROADS, type: 'line', source: OSM_SOURCE,
     filter: ['in', ['get', '_featureType'], ['literal', ROAD_TYPES]],
     paint: { 'line-color': ['get', '_color'], 'line-opacity': 0.95,
       'line-width': ['match', ['get', '_featureType'], 'road_motorway', 7, 'road_trunk', 6, 'road_primary', 5, 'road_secondary', 4, 'road_tertiary', 3, 'road_residential', 2.5, 'road_service', 1.8, 'road_path', 1.2, 2],
       'line-cap': 'round', 'line-join': 'round' } });
 
-  map.addLayer({ id: LAYER_LINES, type: 'line', source: OSM_SOURCE,
-    filter: ['!', ['in', ['get', '_featureType'], ['literal', ROAD_TYPES]]],
-    paint: { 'line-color': ['get', '_color'], 'line-width': ['match', ['get', '_featureType'], 'buildings', 1.5, 'waterway', 2, 0.8], 'line-opacity': 0.9 } });
+  map.addLayer({ id: LAYER_NAT_LINES, type: 'line', source: OSM_SOURCE,
+    filter: ['all', NOT_BUILDING, ['!', ['in', ['get', '_featureType'], ['literal', ROAD_TYPES]]]],
+    paint: { 'line-color': ['get', '_color'], 'line-width': ['match', ['get', '_featureType'], 'waterway', 2, 0.8], 'line-opacity': 0.9 } });
 
-  map.addLayer({ id: LAYER_POINTS, type: 'circle', source: OSM_SOURCE,
+  map.addLayer({ id: LAYER_NAT_POINTS, type: 'circle', source: OSM_SOURCE,
     filter: ['==', '$type', 'Point'],
     paint: { 'circle-color': ['get', '_color'], 'circle-radius': 5, 'circle-stroke-color': '#000', 'circle-stroke-width': 1, 'circle-opacity': 0.85 } });
 
-  map.addLayer({ id: LAYER_LABELS, type: 'symbol', source: OSM_SOURCE,
-    filter: ['!=', ['get', '_name'], ''],
+  map.addLayer({ id: LAYER_NAT_LABEL, type: 'symbol', source: OSM_SOURCE,
+    filter: ['all', NOT_BUILDING, ['!=', ['get', '_name'], '']],
     layout: { 'text-field': ['get', '_name'], 'text-size': 10, 'text-anchor': 'center', 'text-max-width': 8 },
     paint: { 'text-color': '#ffffff', 'text-halo-color': '#000000', 'text-halo-width': 1.5 } });
 }
@@ -153,11 +186,18 @@ export function updateOSMData(map, geojson) {
 }
 
 export function removeOSMLayers(map) {
-  for (const id of ALL_LAYERS) { if (map.getLayer(id)) map.removeLayer(id); }
+  for (const id of [...BLDG_LAYERS, ...NAT_LAYERS]) {
+    if (map.getLayer(id)) map.removeLayer(id);
+  }
   if (map.getSource(OSM_SOURCE)) map.removeSource(OSM_SOURCE);
 }
 
-export function updateOSMVisibility(map, enabled) {
+export function updateBuildingsVisibility(map, enabled) {
   const v = enabled ? 'visible' : 'none';
-  for (const id of ALL_LAYERS) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v); }
+  for (const id of BLDG_LAYERS) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v); }
+}
+
+export function updateNatureVisibility(map, enabled) {
+  const v = enabled ? 'visible' : 'none';
+  for (const id of NAT_LAYERS) { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v); }
 }

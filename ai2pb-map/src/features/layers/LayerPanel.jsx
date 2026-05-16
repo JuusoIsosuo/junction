@@ -2,7 +2,8 @@ const LAYERS = [
   { id: 'cellTowers', label: 'Cell Towers',       color: '#ef4444', description: 'Mobile masts (OSM)' },
   { id: 'roads',      label: 'Roads',              color: '#3b82f6', description: 'Road network (OSM)' },
   { id: 'bridges',    label: 'Bridges',            color: '#f97316', description: 'Bridges with max weight (OSM)' },
-  { id: 'osm',        label: 'Nature & Buildings', color: '#a78bfa', description: 'Buildings, landcover, waterways (OSM)' },
+  { id: 'buildings',  label: 'Buildings',           color: '#a78bfa', description: 'Building footprints (OSM)' },
+  { id: 'nature',     label: 'Nature',              color: '#34d399', description: 'Landcover, waterways, parks (OSM)' },
   { id: 'elevation',  label: 'Elevation',          color: '#facc15', description: 'Elevation heatmap & contours' },
 ];
 

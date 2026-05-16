@@ -47,6 +47,7 @@ CENTER: ${((bbox.minLat+bbox.maxLat)/2).toFixed(4)}, ${((bbox.minLng+bbox.maxLng
 
 ${roadSection}
 
+
 WATERWAYS: ${[...waterways].slice(0,10).join(", ") || "none"}
 
 NATURAL LANDCOVER:

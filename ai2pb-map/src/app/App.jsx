@@ -11,6 +11,7 @@ import { fetchRoads } from "../services/roadsService";
 import { fetchBridges } from "../services/bridgeService";
 import { fetchInfrastructure } from "../services/infrastructureService";
 import { fetchOsm } from "../services/osmClient";
+import { fetchPopulation } from "../services/populationService";
 import {
   addCellTowerLayers, removeCellTowerLayers,
   updateCellTowerData, updateCellTowerVisibility,
@@ -86,6 +87,10 @@ function App() {
   const [elevLoading, setElevLoading] = useState(false);
   const [elevError, setElevError]     = useState(null);
 
+  const [popData, setPopData]       = useState(null);
+  const [popLoading, setPopLoading] = useState(false);
+  const [popError, setPopError]     = useState(null);
+
   // ── Map initialisation ────────────────────────────────────────────
   useEffect(() => {
     if (map.current) return;
@@ -143,6 +148,7 @@ function App() {
       setOsmData(null);
       setOsmElements([]);
       setElevData(null);
+      setPopData(null);
       setShowWeather(false);
       setShowAnalysis(false);
       const src = map.current.getSource("drawn-area");
@@ -298,6 +304,16 @@ function App() {
 
   useEffect(() => {
     if (!queriedBbox) return;
+    const ctl = new AbortController();
+    setPopData(null); setPopLoading(true); setPopError(null);
+    fetchPopulation({ bbox: queriedBbox, signal: ctl.signal })
+      .then((d) => { setPopData(d); setPopLoading(false); })
+      .catch((e) => { if (e.name !== 'AbortError') { setPopError(e.message); setPopLoading(false); } });
+    return () => ctl.abort();
+  }, [queriedBbox]);
+
+  useEffect(() => {
+    if (!queriedBbox) return;
     setElevData(null); setElevLoading(true); setElevError(null);
     const pts = buildGrid(queriedBbox);
     const latStr = pts.map((p) => p.latitude.toFixed(6)).join(",");
@@ -331,7 +347,7 @@ function App() {
     setBbox(null);
     setQueriedBbox(null);
     setTowerData(null); setRoadsData(null); setBridgesData(null);
-    setInfraData(null); setOsmData(null); setOsmElements([]); setElevData(null);
+    setInfraData(null); setOsmData(null); setOsmElements([]); setElevData(null); setPopData(null);
     setShowWeather(false); setShowAnalysis(false);
     const src = map.current?.getSource("drawn-area");
     if (src) src.setData({ type: "FeatureCollection", features: [] });
@@ -547,6 +563,7 @@ function App() {
           infrastructure={infraData}   infraLoading={infraLoading}     infraError={infraError}
           osm={osmData}                osmLoading={osmLoading}         osmError={osmError}
           elevation={elevData}         elevLoading={elevLoading}       elevError={elevError}
+          population={popData}         popLoading={popLoading}         popError={popError}
           enabledLayers={enabledLayers}
         />
       )}

@@ -1,5 +1,6 @@
 import { RADIO_COLORS } from "../cellTowers/cellTowerLayer";
 import { INFRA_TYPE_CONFIG } from "../../services/infrastructureService";
+import { AGE_GROUPS } from "../../services/populationService";
 
 const ROAD_COLORS = {
   motorway:     '#f97316',
@@ -63,6 +64,47 @@ function BreakdownRow({ color, label, count }) {
   );
 }
 
+function GenderBar({ male, female }) {
+  const total = male + female;
+  const malePct = total > 0 ? (male / total) * 100 : 50;
+  const femalePct = 100 - malePct;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      {[
+        { label: 'Miehet', count: male,   pct: malePct,   color: '#38bdf8' },
+        { label: 'Naiset', count: female, pct: femalePct, color: '#f472b6' },
+      ].map(({ label, count, pct, color }) => (
+        <div key={label}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>
+            <span style={{ fontFamily: 'monospace' }}>{label}</span>
+            <span>{count.toLocaleString()} <span style={{ color: '#6b7280' }}>({pct.toFixed(1)}%)</span></span>
+          </div>
+          <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.4s' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AgeBar({ group, count, share, color, maxShare }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#6b7280', width: 34, flexShrink: 0 }}>{group}</span>
+      <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', borderRadius: 3, background: color,
+          width: `${(share / maxShare) * 100}%`, transition: 'width 0.4s',
+        }} />
+      </div>
+      <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#9ca3af', width: 38, textAlign: 'right', flexShrink: 0 }}>
+        {count.toLocaleString()}
+      </span>
+    </div>
+  );
+}
+
 const sec = {
   display: 'flex', flexDirection: 'column', gap: 8,
   padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -75,10 +117,11 @@ export function IntelPanel({
   infrastructure, infraLoading, infraError,
   osm, osmLoading, osmError,
   elevation, elevLoading, elevError,
+  population, popLoading, popError,
   enabledLayers,
 }) {
   const anyEnabled = Object.values(enabledLayers).some(Boolean);
-  if (!anyEnabled) return null;
+  if (!anyEnabled && !population && !popLoading && !popError) return null;
 
   const radioCounts = {};
   towers?.towers.forEach((t) => { radioCounts[t.radio] = (radioCounts[t.radio] ?? 0) + 1; });
@@ -92,6 +135,34 @@ export function IntelPanel({
       display: 'flex', flexDirection: 'column',
       fontFamily: 'Arial', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
     }}>
+
+      {/* Population */}
+      {(popLoading || popError || population) && (
+        <div style={sec}>
+          <SectionHeader color="#e879f9" label="Väestö" />
+          <StatusRow loading={popLoading} error={popError} />
+          {population && !popLoading && (
+            <>
+              <BigNum value={population.total} unit="asukasta" />
+              <GenderBar male={population.male} female={population.female} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
+                <div style={{ fontSize: 9, fontFamily: 'monospace', letterSpacing: '0.12em', color: '#4b5563', textTransform: 'uppercase', marginBottom: 2 }}>
+                  Ikäjakauma
+                </div>
+                {(() => {
+                  const maxShare = Math.max(...AGE_GROUPS.map((g) => g.share));
+                  return population.ageGroups.map(({ group, count, share, color }) => (
+                    <AgeBar key={group} group={group} count={count} share={share} color={color} maxShare={maxShare} />
+                  ));
+                })()}
+              </div>
+              <div style={{ fontSize: 10, color: '#4b5563', fontFamily: 'monospace' }}>
+                Lähde: WorldPop 2020 · ikäjakauma: Tilastokeskus 2023
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Cell Towers */}
       {enabledLayers.cellTowers && (

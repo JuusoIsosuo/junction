@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
+import WeatherPanel from "./WeatherPanel";
+import OSMPanel from "./OSMPanel";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
@@ -15,11 +17,15 @@ function App() {
   const [bbox, setBbox] = useState(null);
   const [isPainting, setIsPainting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showWeather, setShowWeather] = useState(false);
+  const [showOSM, setShowOSM] = useState(false);
 
   const activatePaint = useCallback(() => {
     if (!draw.current) return;
     draw.current.deleteAll();
     setBbox(null);
+    setShowWeather(false);
+    setShowOSM(false);
     draw.current.changeMode("draw_polygon");
     setIsPainting(true);
   }, []);
@@ -28,6 +34,8 @@ function App() {
     if (!draw.current) return;
     draw.current.deleteAll();
     setBbox(null);
+    setShowWeather(false);
+    setShowOSM(false);
     draw.current.changeMode("simple_select");
     setIsPainting(false);
   }, []);
@@ -80,16 +88,13 @@ function App() {
       const data = draw.current.getAll();
       if (data.features.length > 0) {
         const coords = data.features[0].geometry.coordinates[0];
-
         let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
-
         coords.forEach(([lng, lat]) => {
           if (lng < minLng) minLng = lng;
           if (lng > maxLng) maxLng = lng;
           if (lat < minLat) minLat = lat;
           if (lat > maxLat) maxLat = lat;
         });
-
         setBbox({ minLng, minLat, maxLng, maxLat });
         setIsPainting(false);
       }
@@ -100,47 +105,41 @@ function App() {
     map.current.on("draw.delete", () => {
       setBbox(null);
       setIsPainting(false);
+      setShowWeather(false);
+      setShowOSM(false);
     });
   }, []);
 
   const fmt = (n) => n?.toFixed(5);
 
+  const centerLat = bbox ? (bbox.minLat + bbox.maxLat) / 2 : null;
+  const centerLng = bbox ? (bbox.minLng + bbox.maxLng) / 2 : null;
+
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />
 
+      {/* Left panel */}
       <div
         style={{
-          position: "absolute",
-          top: 20,
-          left: 20,
-          background: "rgba(0,0,0,0.85)",
-          color: "white",
-          padding: "16px",
-          borderRadius: "10px",
-          zIndex: 1,
-          width: "300px",
-          fontFamily: "Arial",
+          position: "absolute", top: 20, left: 20,
+          background: "rgba(0,0,0,0.85)", color: "white",
+          padding: "16px", borderRadius: "10px", zIndex: 1,
+          width: "300px", fontFamily: "Arial",
           boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
         }}
       >
         <h3 style={{ margin: "0 0 12px", fontSize: 16 }}>Area Inspector</h3>
 
-        {/* Paint Button */}
         <button
           onClick={isPainting ? clearArea : activatePaint}
           style={{
-            width: "100%",
-            padding: "10px",
-            borderRadius: "7px",
+            width: "100%", padding: "10px", borderRadius: "7px",
             border: isPainting ? "1.5px solid #f87171" : "1.5px solid #38bdf8",
             background: isPainting ? "rgba(248,113,113,0.15)" : "rgba(56,189,248,0.15)",
             color: isPainting ? "#f87171" : "#38bdf8",
-            fontFamily: "Arial",
-            fontSize: 13,
-            fontWeight: "bold",
-            cursor: "pointer",
-            marginBottom: "12px",
+            fontFamily: "Arial", fontSize: 13, fontWeight: "bold",
+            cursor: "pointer", marginBottom: "12px",
           }}
         >
           {isPainting ? "✕  Cancel Painting" : "⬚  Paint Area"}
@@ -148,7 +147,7 @@ function App() {
 
         {isPainting && (
           <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>
-            Click on the map to place points. Double-click to finish the shape.
+            Click to place points. Double-click to finish.
           </p>
         )}
 
@@ -162,11 +161,8 @@ function App() {
           <>
             <div
               style={{
-                background: "rgba(255,255,255,0.05)",
-                borderRadius: 6,
-                padding: "10px 12px",
-                fontSize: 13,
-                marginBottom: 10,
+                background: "rgba(255,255,255,0.05)", borderRadius: 6,
+                padding: "10px 12px", fontSize: 13, marginBottom: 10,
               }}
             >
               {[
@@ -186,7 +182,7 @@ function App() {
               [{fmt(bbox.minLng)}, {fmt(bbox.minLat)}, {fmt(bbox.maxLng)}, {fmt(bbox.maxLat)}]
             </div>
 
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <button
                 onClick={copyBbox}
                 style={{
@@ -213,17 +209,54 @@ function App() {
               </button>
             </div>
 
-            <p style={{ fontSize: 11, color: "#475569", margin: "12px 0 4px" }}>USE WITH →</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-              {["Weather API", "Overpass OSM", "Terrain", "Population", "Land cover"].map((tag) => (
-                <span key={tag} style={{ padding: "3px 8px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 4, fontSize: 11, color: "#475569" }}>
-                  {tag}
-                </span>
-              ))}
-            </div>
+            {/* Weather button */}
+            <button
+              onClick={() => setShowWeather(true)}
+              style={{
+                width: "100%", padding: "10px", borderRadius: "7px",
+                border: "1.5px solid #34d399",
+                background: "rgba(52,211,153,0.12)",
+                color: "#34d399", fontFamily: "Arial", fontSize: 13,
+                fontWeight: "bold", cursor: "pointer", marginBottom: 8,
+              }}
+            >
+              ☁ Fetch Weather Data
+            </button>
+
+            {/* OSM button */}
+            <button
+              onClick={() => setShowOSM(true)}
+              style={{
+                width: "100%", padding: "10px", borderRadius: "7px",
+                border: "1.5px solid #f97316",
+                background: "rgba(249,115,22,0.12)",
+                color: "#f97316", fontFamily: "Arial", fontSize: 13,
+                fontWeight: "bold", cursor: "pointer",
+              }}
+            >
+              🌿 Fetch Nature & Buildings
+            </button>
           </>
         )}
       </div>
+
+      {/* Weather panel */}
+      {showWeather && centerLat && centerLng && (
+        <WeatherPanel
+          lat={centerLat}
+          lng={centerLng}
+          onClose={() => setShowWeather(false)}
+        />
+      )}
+
+      {/* OSM panel */}
+      {showOSM && bbox && (
+  <OSMPanel
+    bbox={bbox}
+    map={map.current}
+    onClose={() => setShowOSM(false)}
+  />
+)}
     </div>
   );
 }

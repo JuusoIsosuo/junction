@@ -1,4 +1,4 @@
-# 🗺️ AI2PB Map - Area Inspector
+# AI2PB Map - Area Inspector
 
 An interactive web application that lets you **draw areas on a map** and instantly fetch **weather data** and **geographic features** (buildings, forests, parks, waterways) for those areas.
 
@@ -6,7 +6,7 @@ An interactive web application that lets you **draw areas on a map** and instant
 
 ---
 
-## 🎯 What Does This Project Do?
+## What Does This Project Do?
 
 AI2PB Map is a **geographic data visualization tool** that combines three powerful things:
 
@@ -15,14 +15,14 @@ AI2PB Map is a **geographic data visualization tool** that combines three powerf
 3. **OpenStreetMap Analysis** - Fetch & visualize buildings, forests, parks, waterways, and more
 
 ### Perfect for:
-- 📍 Urban planning analysis
-- 🌍 Environmental research
-- 🏗️ Infrastructure planning
-- 📊 Geographic data analysis
+- Urban planning analysis
+- Environmental research
+- Infrastructure planning
+- Geographic data analysis
 
 ---
 
-## 🚀 Quick Start (5 minutes)
+## Quick Start (5 minutes)
 
 ### Prerequisites
 - **Node.js** 16+ ([download here](https://nodejs.org/))
@@ -69,22 +69,22 @@ Local:   http://localhost:5173
 ### Open in Browser
 Visit: **http://localhost:5173**
 
-You're ready to go! 🎉
+You're ready to go!
 
 ---
 
-## 📖 How to Use the App
+## How to Use the App
 
 ### Step-by-Step Guide
 
 1. **Draw an Area**
-   - Click **"⬚ Paint Area"** button (top-left panel)
+   - Click **"Paint Area"** button (top-left panel)
    - Click on the map to add points
    - Double-click to finish drawing
    - A bounding box is automatically calculated
 
 2. **Get Weather Data**
-   - With an area drawn, click **"☁ Fetch Weather Data"**
+   - With an area drawn, click **"Fetch Weather Data"**
    - A panel appears on the right showing:
      - Current temperature & conditions
      - Humidity, wind, precipitation
@@ -92,7 +92,7 @@ You're ready to go! 🎉
      - Wind & humidity trends
 
 3. **Get Geographic Features**
-   - With an area drawn, click **"🌿 Fetch Nature & Buildings"**
+   - With an area drawn, click **"Gather Intel"**
    - A panel shows:
      - Buildings (residential, commercial, offices, etc.)
      - Natural features (forests, water, grasslands)
@@ -101,13 +101,9 @@ You're ready to go! 🎉
      - Waterways (rivers, streams, canals)
    - Features are visualized on the map with different colors
 
-4. **Copy Coordinates**
-   - After drawing, click **"Copy JSON"** to copy coordinates
-   - Useful for sharing area boundaries with others
-
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 ai2pb-map/
@@ -140,7 +136,7 @@ ai2pb-map/
 
 ---
 
-## 🔄 How It Works (Architecture)
+## How It Works (Architecture)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

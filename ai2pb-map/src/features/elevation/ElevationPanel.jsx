@@ -413,13 +413,36 @@ export default function ElevationPanel({ bbox, map, onClose }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={() => setMinimized((m) => !m)} title={minimized ? "Expand" : "Minimize"}
-            style={{ background: "none", border: "none", color: "#475569", fontSize: 16, cursor: "pointer", lineHeight: 1 }}>
-            {minimized ? "▢" : "—"}
+          <button
+            onClick={() => setMinimized((m) => !m)}
+            title={minimized ? "Show" : "Hide"}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#475569",
+              fontSize: 11,
+              cursor: "pointer",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {minimized ? "Show" : "Hide"}
           </button>
-          <button onClick={onClose}
-            style={{ background: "none", border: "none", color: "#475569", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>
-            ✕
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#475569",
+              fontSize: 11,
+              cursor: "pointer",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Close
           </button>
         </div>
       </div>
@@ -429,22 +452,16 @@ export default function ElevationPanel({ bbox, map, onClose }) {
         {/* ── Loading ── */}
         {loading && (
           <div style={{ textAlign: "center", color: "#64748b", padding: "28px 0" }}>
-            <div style={{
-              fontSize: 32, marginBottom: 10,
-              animation: "spin 1.5s linear infinite",
-            }}>⛰</div>
             <div style={{ fontSize: 13, color: "#475569" }}>Sampling elevation grid…</div>
             <div style={{ fontSize: 10, color: "#334155", marginTop: 6 }}>
               {GRID_N * GRID_N} points via Copernicus DEM
             </div>
-            <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
           </div>
         )}
 
         {/* ── Error ── */}
         {error && !loading && (
           <div style={{ color: "#f87171", fontSize: 12 }}>
-            <div style={{ fontSize: 20, marginBottom: 6 }}>⚠</div>
             Error: {error}
             <div style={{ fontSize: 10, color: "#475569", marginTop: 6 }}>
               Open-Elevation may be temporarily unavailable. Try again or reduce the painted area.
@@ -513,27 +530,24 @@ export default function ElevationPanel({ bbox, map, onClose }) {
                 {[
                   {
                     label: "Colour Heatmap",
-                    icon: "🎨",
                     state: showHeat,
                     toggle: () => setShowHeat((v) => !v),
                     color: "#34d399",
                   },
                   {
                     label: "Contour Lines",
-                    icon: "〰",
                     state: showContour,
                     toggle: () => setShowContour((v) => !v),
                     color: "#facc15",
                   },
                   {
                     label: "3D Terrain",
-                    icon: "⛰",
                     state: show3D,
                     toggle: () => setShow3D((v) => !v),
                     color: "#f97316",
                     note: "pitches map to 55°",
                   },
-                ].map(({ label, icon, state, toggle, color, note }) => (
+                ].map(({ label, state, toggle, color, note }) => (
                   <button
                     key={label}
                     onClick={toggle}
@@ -551,7 +565,6 @@ export default function ElevationPanel({ bbox, map, onClose }) {
                     }}
                   >
                     <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 14 }}>{icon}</span>
                       <span style={{ fontSize: 12 }}>{label}</span>
                       {note && (
                         <span style={{ fontSize: 9, color: "#475569" }}>{note}</span>

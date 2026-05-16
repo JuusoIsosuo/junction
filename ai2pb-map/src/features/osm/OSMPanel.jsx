@@ -7,7 +7,6 @@ const CATEGORIES = [
   {
     key: "buildings",
     label: "Buildings",
-    icon: "🏗️",
     color: "#a78bfa",
     subtypes: [
       { tag: "yes", label: "General" },
@@ -25,7 +24,6 @@ const CATEGORIES = [
   {
     key: "natural",
     label: "Natural (landcover)",
-    icon: "🌿",
     color: "#34d399",
     subtypes: [
       { tag: "wood", label: "Forest / Wood" },
@@ -41,7 +39,6 @@ const CATEGORIES = [
   {
     key: "landuse",
     label: "Land Use",
-    icon: "🗾",
     color: "#6ee7b7",
     subtypes: [
       { tag: "forest", label: "Forest" },
@@ -56,7 +53,6 @@ const CATEGORIES = [
   {
     key: "leisure",
     label: "Parks & Green Space",
-    icon: "🌳",
     color: "#86efac",
     subtypes: [
       { tag: "park", label: "Park" },
@@ -70,7 +66,6 @@ const CATEGORIES = [
   {
     key: "waterway",
     label: "Waterways",
-    icon: "💧",
     color: "#38bdf8",
     subtypes: [
       { tag: "river", label: "River" },
@@ -83,7 +78,6 @@ const CATEGORIES = [
   {
     key: "roads",
     label: "Roads & Paths",
-    icon: "🛣️",
     color: "#f97316",
     subtypes: [
       { tag: "motorway",     label: "Motorway" },
@@ -398,7 +392,6 @@ function CategoryBlock({ cat, counts }) {
         }}
       >
         <span style={{ fontSize: 13 }}>
-          <span style={{ marginRight: 7 }}>{cat.icon}</span>
           {cat.label}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -414,7 +407,9 @@ function CategoryBlock({ cat, counts }) {
           >
             {total}
           </span>
-          <span style={{ fontSize: 11, color: "#475569" }}>{open ? "▲" : "▼"}</span>
+          <span style={{ fontSize: 10, color: "#475569", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            {open ? "Hide" : "Show"}
+          </span>
         </span>
       </button>
 
@@ -584,13 +579,36 @@ export default function OSMPanel({
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={() => setMinimized((m) => !m)} title={minimized ? "Expand" : "Minimize"}
-            style={{ background: "none", border: "none", color: "#64748b", fontSize: 16, cursor: "pointer", lineHeight: 1 }}>
-            {minimized ? "▢" : "—"}
+          <button
+            onClick={() => setMinimized((m) => !m)}
+            title={minimized ? "Show" : "Hide"}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#64748b",
+              fontSize: 11,
+              cursor: "pointer",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {minimized ? "Show" : "Hide"}
           </button>
-          <button onClick={onClose}
-            style={{ background: "none", border: "none", color: "#64748b", fontSize: 18, cursor: "pointer" }}>
-            ✕
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#64748b",
+              fontSize: 11,
+              cursor: "pointer",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Close
           </button>
         </div>
       </div>
@@ -625,7 +643,6 @@ export default function OSMPanel({
       <div style={{ overflowY: "auto", padding: "12px 14px", flex: 1 }}>
         {loading && (
           <div style={{ textAlign: "center", color: "#64748b", padding: "24px 0" }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
             Fetching OSM data...
           </div>
         )}
@@ -648,9 +665,7 @@ export default function OSMPanel({
               background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
               borderRadius: 7, padding: "8px 10px",
             }}>
-              <span style={{ fontSize: 13, color: "white" }}>
-                <span style={{ marginRight: 7 }}>📡</span>Cell Towers
-              </span>
+              <span style={{ fontSize: 13, color: "white" }}>Cell Towers</span>
               {towerData && (
                 <span style={{
                   background: "#60a5fa", color: "#000", fontSize: 10,
@@ -700,9 +715,7 @@ export default function OSMPanel({
               background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
               borderRadius: 7, padding: "8px 10px",
             }}>
-              <span style={{ fontSize: 13, color: "white" }}>
-                <span style={{ marginRight: 7 }}>🛣️</span>Roads
-              </span>
+              <span style={{ fontSize: 13, color: "white" }}>Roads</span>
               {roadsData && (
                 <span style={{
                   background: "#fb923c", color: "#000", fontSize: 10,
@@ -758,7 +771,7 @@ export default function OSMPanel({
               fontWeight: "bold", cursor: "pointer",
             }}
           >
-            🧠 Analyze with AI
+            Analyze with AI
           </button>
         </div>
       )}

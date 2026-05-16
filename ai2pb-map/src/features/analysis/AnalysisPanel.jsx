@@ -227,13 +227,36 @@ export default function AnalysisPanel({ elements, bbox, towerData, roadsData, el
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={() => setMinimized((m) => !m)} title={minimized ? "Expand" : "Minimize"}
-            style={{ background: "none", border: "none", color: "#64748b", fontSize: 16, cursor: "pointer", lineHeight: 1 }}>
-            {minimized ? "▢" : "—"}
+          <button
+            onClick={() => setMinimized((m) => !m)}
+            title={minimized ? "Show" : "Hide"}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#64748b",
+              fontSize: 11,
+              cursor: "pointer",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {minimized ? "Show" : "Hide"}
           </button>
-          <button onClick={onClose}
-            style={{ background: "none", border: "none", color: "#64748b", fontSize: 18, cursor: "pointer" }}>
-            ✕
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#64748b",
+              fontSize: 11,
+              cursor: "pointer",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Close
           </button>
         </div>
       </div>
@@ -242,7 +265,6 @@ export default function AnalysisPanel({ elements, bbox, towerData, roadsData, el
         <div style={{ overflowY: "auto", padding: "16px", flex: 1, minHeight: 0 }}>
           {loading && (
             <div style={{ textAlign: "center", color: "#64748b", padding: "32px 0" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🧠</div>
               <div style={{ fontSize: 13 }}>Analyzing terrain & weather...</div>
               <div style={{ fontSize: 11, color: "#334155", marginTop: 6 }}>Fetching live forecast · processing area data</div>
             </div>

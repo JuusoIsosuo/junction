@@ -45,9 +45,12 @@ const WMO_ICON = {
   71: "❄️",
   73: "❄️",
   75: "❄️",
+  77: "❄️",
   80: "🌦️",
   81: "🌧️",
   82: "⛈️",
+  85: "❄️",
+  86: "❄️",
   95: "⛈️",
   96: "⛈️",
   99: "⛈️",
@@ -109,7 +112,7 @@ export default function WeatherPanel({ lat, lng, onClose }) {
         color: "white",
         borderRadius: 12,
         zIndex: 2,
-        fontFamily: "Arial",
+  fontFamily: "Arial",
         boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
         border: "1px solid rgba(255,255,255,0.08)",
         overflow: "hidden",
@@ -134,20 +137,43 @@ export default function WeatherPanel({ lat, lng, onClose }) {
       >
         <div>
           <span style={{ fontSize: 13, fontWeight: "bold", color: "#34d399" }}>
-            ☁ Weather Data
+            Weather Data
           </span>
           <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
             {lat.toFixed(4)}°N, {lng.toFixed(4)}°E
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={() => setMinimized((m) => !m)} title={minimized ? "Expand" : "Minimize"}
-            style={{ background: "none", border: "none", color: "#64748b", fontSize: 16, cursor: "pointer", lineHeight: 1 }}>
-            {minimized ? "▢" : "—"}
+          <button
+            onClick={() => setMinimized((m) => !m)}
+            title={minimized ? "Show" : "Hide"}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#64748b",
+              fontSize: 11,
+              cursor: "pointer",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            {minimized ? "Show" : "Hide"}
           </button>
-          <button onClick={onClose}
-            style={{ background: "none", border: "none", color: "#64748b", fontSize: 18, cursor: "pointer" }}>
-            ✕
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#64748b",
+              fontSize: 11,
+              cursor: "pointer",
+              lineHeight: 1,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Close
           </button>
         </div>
       </div>
@@ -155,7 +181,6 @@ export default function WeatherPanel({ lat, lng, onClose }) {
       {!minimized && <div style={{ padding: "14px 16px", overflowY: "auto", flex: 1 }}>
         {loading && (
           <div style={{ textAlign: "center", color: "#64748b", padding: "24px 0" }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
             Fetching weather...
           </div>
         )}
@@ -203,14 +228,13 @@ export default function WeatherPanel({ lat, lng, onClose }) {
                 }}
               >
                 {[
-                  { label: "Humidity", value: `${c.relative_humidity_2m}%`, icon: "💧" },
+                  { label: "Humidity", value: `${c.relative_humidity_2m}%` },
                   {
                     label: "Wind",
                     value: `${c.wind_speed_10m} m/s\n${windDir(c.wind_direction_10m)}`,
-                    icon: "💨",
                   },
-                  { label: "Precip.", value: `${c.precipitation} mm`, icon: "🌧️" },
-                ].map(({ label, value, icon }) => (
+                  { label: "Precip.", value: `${c.precipitation} mm` },
+                ].map(({ label, value }) => (
                   <div
                     key={label}
                     style={{
@@ -220,7 +244,6 @@ export default function WeatherPanel({ lat, lng, onClose }) {
                       textAlign: "center",
                     }}
                   >
-                    <div style={{ fontSize: 16 }}>{icon}</div>
                     <div style={{ fontSize: 10, color: "#64748b", marginTop: 2 }}>{label}</div>
                     <div
                       style={{
@@ -407,10 +430,10 @@ export default function WeatherPanel({ lat, lng, onClose }) {
                         {isNow ? "Now" : `${String(hour).padStart(2, "0")}:00`}
                       </span>
                       <span style={{ fontSize: 11, color: "#94a3b8" }}>
-                        💨 {h.wind_speed_10m[idx]} m/s
+                        Wind {h.wind_speed_10m[idx]} m/s
                       </span>
                       <span style={{ fontSize: 11, color: "#94a3b8", textAlign: "right" }}>
-                        💧 {h.relative_humidity_2m[idx]}%
+                        Humidity {h.relative_humidity_2m[idx]}%
                       </span>
                     </div>
                   );

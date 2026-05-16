@@ -66,7 +66,6 @@ function App() {
 
   const [bbox, setBbox] = useState(null);
   const [isPainting, setIsPainting] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
   const [showDrone, setShowDrone] = useState(false);
 
@@ -458,24 +457,6 @@ function App() {
     setIsPainting(false);
   }, []);
 
-  const copyBbox = useCallback(() => {
-    if (!bbox) return;
-    const json = JSON.stringify({
-      bbox: [
-        parseFloat(bbox.minLng.toFixed(6)), parseFloat(bbox.minLat.toFixed(6)),
-        parseFloat(bbox.maxLng.toFixed(6)), parseFloat(bbox.maxLat.toFixed(6)),
-      ],
-      minLng: parseFloat(bbox.minLng.toFixed(6)),
-      minLat: parseFloat(bbox.minLat.toFixed(6)),
-      maxLng: parseFloat(bbox.maxLng.toFixed(6)),
-      maxLat: parseFloat(bbox.maxLat.toFixed(6)),
-    }, null, 2);
-    navigator.clipboard.writeText(json).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }, [bbox]);
-
   const gatherIntel = useCallback(() => {
     if (bbox) setQueriedBbox(bbox);
   }, [bbox]);
@@ -494,6 +475,11 @@ function App() {
   }, []);
 
   const fmt = (n) => n?.toFixed(5);
+  const fmtCoord = (value, type) => {
+    if (value === null || value === undefined) return "";
+    const dir = value >= 0 ? (type === "lat" ? "N" : "E") : (type === "lat" ? "S" : "W");
+    return `${Math.abs(value).toFixed(5)}°${dir}`;
+  };
   const centerLat = bbox ? (bbox.minLat + bbox.maxLat) / 2 : null;
   const centerLng = bbox ? (bbox.minLng + bbox.maxLng) / 2 : null;
 
@@ -512,7 +498,7 @@ function App() {
         borderRadius: "10px",
         zIndex: 1,
         width: "300px",
-        fontFamily: "Arial",
+        fontFamily: "Arial, sans-serif",
         boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
         display: "flex",
         flexDirection: "column",
@@ -531,16 +517,24 @@ function App() {
             borderBottom: leftMinimized ? "none" : "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 16 }}>Area Inspector</h3>
+          <h3 style={{
+            margin: 0,
+            fontSize: 15,
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "#cbd5f5",
+          }}>Area Inspector</h3>
           <button
             onClick={() => setLeftMinimized((m) => !m)}
-            title={leftMinimized ? "Expand" : "Minimize"}
+            title={leftMinimized ? "Show" : "Hide"}
             style={{
               background: "none", border: "none", color: "#64748b",
-              fontSize: 16, cursor: "pointer", lineHeight: 1, padding: "0 2px",
+              fontSize: 11, cursor: "pointer", lineHeight: 1, padding: "0 2px",
+              letterSpacing: "0.08em", textTransform: "uppercase",
             }}
           >
-            {leftMinimized ? "▢" : "—"}
+            {leftMinimized ? "Show" : "Hide"}
           </button>
         </div>
 
@@ -553,10 +547,10 @@ function App() {
                 border: isPainting ? "1.5px solid #f87171" : "1.5px solid #38bdf8",
                 background: isPainting ? "rgba(248,113,113,0.15)" : "rgba(56,189,248,0.15)",
                 color: isPainting ? "#f87171" : "#38bdf8",
-                fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+                fontSize: 13, fontWeight: "bold", cursor: "pointer",
               }}
             >
-              {isPainting ? "✕  Cancel Painting" : "⬚  Paint Area"}
+              {isPainting ? "Cancel Painting" : "Paint Area"}
             </button>
 
             {isPainting && (
@@ -575,46 +569,40 @@ function App() {
               <>
                 <div style={{
                   background: "rgba(255,255,255,0.05)", borderRadius: 6,
-                  padding: "10px 12px", fontSize: 13,
+                  padding: "10px 12px", fontSize: 12,
                 }}>
                   {[
-                    ["Min Longitude", fmt(bbox.minLng)],
-                    ["Min Latitude",  fmt(bbox.minLat)],
-                    ["Max Longitude", fmt(bbox.maxLng)],
-                    ["Max Latitude",  fmt(bbox.maxLat)],
+                    ["West", fmtCoord(bbox.minLng, "lng")],
+                    ["South", fmtCoord(bbox.minLat, "lat")],
+                    ["East", fmtCoord(bbox.maxLng, "lng")],
+                    ["North", fmtCoord(bbox.maxLat, "lat")],
                   ].map(([label, val]) => (
                     <div key={label} style={{
-                      display: "flex", justifyContent: "space-between",
-                      padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.06)",
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "6px 0",
+                      borderBottom: "1px solid rgba(255,255,255,0.06)",
                     }}>
-                      <span style={{ color: "#94a3b8" }}>{label}</span>
-                      <span style={{ fontWeight: "bold" }}>{val}</span>
+                      <span style={{
+                        color: "#94a3b8",
+                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
+                        fontSize: 10,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                      }}>{label}</span>
+                      <span style={{ fontWeight: 700, fontSize: 12 }}>{val}</span>
                     </div>
                   ))}
                 </div>
 
-                <div style={{
-                  fontSize: 11, color: "#7dd3fc",
-                  background: "rgba(56,189,248,0.07)",
-                  borderRadius: 6, padding: "7px 10px", wordBreak: "break-all",
-                }}>
-                  [{fmt(bbox.minLng)}, {fmt(bbox.minLat)}, {fmt(bbox.maxLng)}, {fmt(bbox.maxLat)}]
-                </div>
-
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={copyBbox} style={{
-                    flex: 1, padding: "8px", borderRadius: 6,
-                    border: "1px solid rgba(56,189,248,0.4)",
-                    background: copied ? "rgba(56,189,248,0.2)" : "rgba(56,189,248,0.08)",
-                    color: "#38bdf8", fontFamily: "Arial", fontSize: 12, fontWeight: "bold", cursor: "pointer",
-                  }}>
-                    {copied ? "✔ Copied!" : "Copy JSON"}
-                  </button>
                   <button onClick={clearArea} style={{
                     flex: 1, padding: "8px", borderRadius: 6,
                     border: "1px solid rgba(255,255,255,0.1)",
                     background: "rgba(255,255,255,0.05)",
-                    color: "#64748b", fontFamily: "Arial", fontSize: 12, fontWeight: "bold", cursor: "pointer",
+                    color: "#64748b", fontSize: 12, fontWeight: "bold", cursor: "pointer",
                   }}>
                     Clear
                   </button>
@@ -623,27 +611,27 @@ function App() {
                 <button onClick={gatherIntel} style={{
                   width: "100%", padding: "10px", borderRadius: "7px",
                   border: "1.5px solid #10b981", background: "rgba(16,185,129,0.12)",
-                  color: "#10b981", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+                  color: "#10b981", fontSize: 13, fontWeight: "bold", cursor: "pointer",
                 }}>
-                  ⬡  Gather Intel
+                  Gather Intel
                 </button>
 
                 {queriedBbox && (
                   <button onClick={() => setShowAnalysis(true)} style={{
                     width: "100%", padding: "10px", borderRadius: "7px",
                     border: "1.5px solid #a78bfa", background: "rgba(167,139,250,0.12)",
-                    color: "#a78bfa", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+                    color: "#a78bfa", fontSize: 13, fontWeight: "bold", cursor: "pointer",
                   }}>
-                    🧠  Analyze with AI
+                    Analyze with AI
                   </button>
                 )}
 
                 <button onClick={() => setShowWeather(true)} style={{
                   width: "100%", padding: "10px", borderRadius: "7px",
                   border: "1.5px solid #34d399", background: "rgba(52,211,153,0.12)",
-                  color: "#34d399", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+                  color: "#34d399", fontSize: 13, fontWeight: "bold", cursor: "pointer",
                 }}>
-                  ☁  Fetch Weather Data
+                  Fetch Weather Data
                 </button>
 
                 <button onClick={() => setShowDrone(true)} style={{
@@ -667,10 +655,10 @@ function App() {
                         border: losMode ? "1.5px solid #f97316" : "1.5px solid #fb923c",
                         background: losMode ? "rgba(249,115,22,0.2)" : "rgba(251,146,60,0.12)",
                         color: losMode ? "#f97316" : "#fb923c",
-                        fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+                        fontSize: 13, fontWeight: "bold", cursor: "pointer",
                       }}
                     >
-                      {losMode ? "✕  Peruuta valinta" : "👁  Line of Sight"}
+                      {losMode ? "Peruuta valinta" : "Line of Sight"}
                     </button>
                     {losMode && (
                       <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
@@ -687,7 +675,7 @@ function App() {
                           width: "100%", padding: "7px", borderRadius: "6px",
                           border: "1px solid rgba(255,255,255,0.1)",
                           background: "rgba(255,255,255,0.05)",
-                          color: "#64748b", fontFamily: "Arial", fontSize: 12, cursor: "pointer",
+                          color: "#64748b", fontSize: 12, cursor: "pointer",
                         }}
                       >
                         Poista LoS

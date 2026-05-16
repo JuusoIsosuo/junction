@@ -45,6 +45,7 @@ function App() {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const draw = useRef(null);
+  const drawAdded = useRef(false);
 
   const [mapInstance, setMapInstance] = useState(null);
   const [leftMinimized, setLeftMinimized] = useState(false);
@@ -106,6 +107,7 @@ function App() {
     });
 
     map.current.addControl(draw.current);
+    drawAdded.current = true;
 
     function updateArea() {
       const data = draw.current.getAll();
@@ -122,11 +124,12 @@ function App() {
         setBbox({ minLng, minLat, maxLng, maxLat });
         setIsPainting(false);
 
-        // Remove from Draw immediately so the polygon can't be dragged
-        draw.current.deleteAll();
-        draw.current.changeMode("simple_select");
+        // Store polygon in static source, then remove Draw so it can't intercept map panning
         const src = map.current.getSource("drawn-area");
         if (src) src.setData(feature);
+        draw.current.deleteAll();
+        map.current.removeControl(draw.current);
+        drawAdded.current = false;
       }
     }
 
@@ -316,26 +319,33 @@ function App() {
 
   // ── Callbacks ─────────────────────────────────────────────────────
   const activatePaint = useCallback(() => {
-    if (!draw.current) return;
+    if (!draw.current || !map.current) return;
+    if (!drawAdded.current) {
+      map.current.addControl(draw.current);
+      drawAdded.current = true;
+    }
     draw.current.deleteAll();
     setBbox(null);
-    const src = map.current?.getSource("drawn-area");
+    const src = map.current.getSource("drawn-area");
     if (src) src.setData({ type: "FeatureCollection", features: [] });
     draw.current.changeMode("draw_polygon");
     setIsPainting(true);
   }, []);
 
   const clearArea = useCallback(() => {
-    if (!draw.current) return;
-    draw.current.deleteAll();
+    if (!draw.current || !map.current) return;
+    if (drawAdded.current) {
+      draw.current.deleteAll();
+      map.current.removeControl(draw.current);
+      drawAdded.current = false;
+    }
     setBbox(null);
     setQueriedBbox(null);
     setTowerData(null); setRoadsData(null); setBridgesData(null);
     setInfraData(null); setOsmData(null); setOsmElements([]); setElevData(null);
     setShowWeather(false); setShowAnalysis(false);
-    const src = map.current?.getSource("drawn-area");
+    const src = map.current.getSource("drawn-area");
     if (src) src.setData({ type: "FeatureCollection", features: [] });
-    draw.current.changeMode("simple_select");
     setIsPainting(false);
   }, []);
 

@@ -1,12 +1,14 @@
 const LAYERS = [
-  { id: 'cellTowers', label: 'Cell Towers',       color: '#10b981', description: 'Mobile masts (OSM)' },
+  { id: 'cellTowers', label: 'Cell Towers',       color: '#ef4444', description: 'Mobile masts (OSM)' },
   { id: 'roads',      label: 'Roads',              color: '#3b82f6', description: 'Road network (OSM)' },
-  { id: 'bridges',    label: 'Bridges',            color: '#f59e0b', description: 'Bridges with max weight (OSM)' },
+  { id: 'bridges',    label: 'Bridges',            color: '#f97316', description: 'Bridges with max weight (OSM)' },
   { id: 'osm',        label: 'Nature & Buildings', color: '#a78bfa', description: 'Buildings, landcover, waterways (OSM)' },
   { id: 'elevation',  label: 'Elevation',          color: '#facc15', description: 'Elevation heatmap & contours' },
 ];
 
-export function LayerPanel({ enabledLayers, onToggle }) {
+export function LayerPanel({ enabledLayers, onToggle, onToggleAll }) {
+  const allOn = LAYERS.every((l) => enabledLayers[l.id]);
+
   return (
     <div style={{
       background: 'rgba(0,0,0,0.82)',
@@ -19,16 +21,25 @@ export function LayerPanel({ enabledLayers, onToggle }) {
       gap: 5,
       minWidth: 180,
     }}>
-      <div style={{
-        fontFamily: 'monospace',
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: '0.15em',
-        color: '#4b5563',
-        textTransform: 'uppercase',
-        marginBottom: 3,
-      }}>
-        Layers
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 10, fontWeight: 700,
+          letterSpacing: '0.15em', color: '#4b5563', textTransform: 'uppercase',
+        }}>
+          Layers
+        </div>
+        <button
+          onClick={onToggleAll}
+          style={{
+            fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em',
+            padding: '2px 6px', borderRadius: 3,
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.05)',
+            color: '#6b7280', cursor: 'pointer',
+          }}
+        >
+          {allOn ? 'ALL OFF' : 'ALL ON'}
+        </button>
       </div>
 
       {LAYERS.map((layer) => {

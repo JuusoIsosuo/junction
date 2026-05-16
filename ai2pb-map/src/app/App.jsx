@@ -309,6 +309,15 @@ function App() {
     setEnabledLayers((prev) => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
+  const toggleAllLayers = useCallback(() => {
+    setEnabledLayers((prev) => {
+      const allOn = Object.values(prev).every(Boolean);
+      const next = {};
+      for (const k of Object.keys(prev)) next[k] = !allOn;
+      return next;
+    });
+  }, []);
+
   const fmt = (n) => n?.toFixed(5);
 
   // ── Render ────────────────────────────────────────────────────────
@@ -414,6 +423,7 @@ function App() {
         <LayerPanel
           enabledLayers={enabledLayers}
           onToggle={toggleLayer}
+          onToggleAll={toggleAllLayers}
         />
       </div>
 

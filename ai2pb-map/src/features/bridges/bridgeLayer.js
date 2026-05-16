@@ -1,13 +1,31 @@
 import mapboxgl from '../../services/mapbox';
 
-const SRC       = 'bridges-source';
-const LAYER_BG  = 'bridges-casing';
-const LAYER_FG  = 'bridges-line';
-const LAYER_LBL = 'bridges-label';
+const SRC        = 'bridges-source';
+const LAYER_DOT  = 'bridges-dots';
+const LAYER_LBL  = 'bridges-label';
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
+const COLOR = '#f97316';
 
 let popup = null;
+
+function midpoint(coordinates) {
+  const mid = Math.floor(coordinates.length / 2);
+  return coordinates[mid];
+}
+
+function linesToPoints(geojson) {
+  return {
+    type: 'FeatureCollection',
+    features: (geojson?.features ?? []).map((f) => ({
+      ...f,
+      geometry: {
+        type: 'Point',
+        coordinates: midpoint(f.geometry.coordinates),
+      },
+    })),
+  };
+}
 
 export function addBridgeLayers(map) {
   if (map.getSource(SRC)) return;
@@ -15,24 +33,15 @@ export function addBridgeLayers(map) {
   map.addSource(SRC, { type: 'geojson', data: EMPTY });
 
   map.addLayer({
-    id: LAYER_BG,
-    type: 'line',
+    id: LAYER_DOT,
+    type: 'circle',
     source: SRC,
     paint: {
-      'line-color': '#000000',
-      'line-width': 6,
-      'line-opacity': 0.6,
-    },
-  });
-
-  map.addLayer({
-    id: LAYER_FG,
-    type: 'line',
-    source: SRC,
-    paint: {
-      'line-color': '#f59e0b',
-      'line-width': 3,
-      'line-opacity': 0.95,
+      'circle-color': COLOR,
+      'circle-radius': 7,
+      'circle-stroke-width': 1.5,
+      'circle-stroke-color': '#ffffff',
+      'circle-opacity': 0.9,
     },
   });
 
@@ -40,21 +49,21 @@ export function addBridgeLayers(map) {
     id: LAYER_LBL,
     type: 'symbol',
     source: SRC,
-    minzoom: 12,
+    minzoom: 13,
     layout: {
-      'symbol-placement': 'line',
       'text-field': ['coalesce', ['get', 'name'], 'Bridge'],
       'text-size': 10,
-      'text-offset': [0, -1],
+      'text-offset': [0, 1.4],
+      'text-anchor': 'top',
     },
     paint: {
-      'text-color': '#f59e0b',
+      'text-color': COLOR,
       'text-halo-color': '#000',
       'text-halo-width': 1.5,
     },
   });
 
-  map.on('click', LAYER_FG, (e) => {
+  map.on('click', LAYER_DOT, (e) => {
     const feat = e.features?.[0];
     if (!feat) return;
     const p = feat.properties;
@@ -74,7 +83,7 @@ export function addBridgeLayers(map) {
 
     const html = `
       <div style="font-family:Arial;font-size:12px;color:#e5e7eb;min-width:160px">
-        <div style="font-size:13px;font-weight:bold;color:#f59e0b;margin-bottom:6px">&#9651; Bridge</div>
+        <div style="font-size:13px;font-weight:bold;color:${COLOR};margin-bottom:6px">&#9651; Bridge</div>
         <table style="border-collapse:collapse">${tableRows}</table>
       </div>`;
 
@@ -85,25 +94,25 @@ export function addBridgeLayers(map) {
       .addTo(map);
   });
 
-  map.on('mouseenter', LAYER_FG, () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', LAYER_FG, () => { map.getCanvas().style.cursor = ''; });
+  map.on('mouseenter', LAYER_DOT, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', LAYER_DOT, () => { map.getCanvas().style.cursor = ''; });
 }
 
 export function removeBridgeLayers(map) {
   if (popup) { popup.remove(); popup = null; }
-  for (const id of [LAYER_LBL, LAYER_FG, LAYER_BG]) {
+  for (const id of [LAYER_LBL, LAYER_DOT]) {
     if (map.getLayer(id)) map.removeLayer(id);
   }
   if (map.getSource(SRC)) map.removeSource(SRC);
 }
 
 export function updateBridgeData(map, geojson) {
-  map.getSource(SRC)?.setData(geojson ?? EMPTY);
+  map.getSource(SRC)?.setData(linesToPoints(geojson));
 }
 
 export function updateBridgeVisibility(map, enabled) {
   const v = enabled ? 'visible' : 'none';
-  for (const id of [LAYER_BG, LAYER_FG, LAYER_LBL]) {
+  for (const id of [LAYER_DOT, LAYER_LBL]) {
     if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', v);
   }
 }

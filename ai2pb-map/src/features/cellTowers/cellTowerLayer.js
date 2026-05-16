@@ -1,13 +1,15 @@
 import { geoCircle } from "../../utils/geo";
 
 export const RADIO_COLORS = {
-  GSM:     '#f59e0b',
-  UMTS:    '#3b82f6',
-  LTE:     '#10b981',
-  NR:      '#a855f7',
-  CDMA:    '#f97316',
-  unknown: '#6b7280',
+  GSM:     '#ef4444',
+  UMTS:    '#ef4444',
+  LTE:     '#ef4444',
+  NR:      '#ef4444',
+  CDMA:    '#ef4444',
+  unknown: '#ef4444',
 };
+
+const COVERAGE_COLOR = '#ef4444';
 
 const SRC_COVERAGE       = 'cell-coverage';
 const SRC_TOWERS         = 'cell-towers';

@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import mapboxgl from "../services/mapbox";
-import WeatherPanel from "../features/weather/WeatherPanel";
-import OSMPanel from "../features/osm/OSMPanel";
-import ElevationPanel from "../features/elevation/ElevationPanel";
 import { IntelPanel } from "../features/intel/IntelPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
 import { fetchCellTowers } from "../services/cellTowerService";
 import { fetchRoads } from "../services/roadsService";
 import { fetchBridges } from "../services/bridgeService";
+import { fetchOsm } from "../services/osmClient";
+import { fetchWeather } from "../services/weatherClient";
 import {
   addCellTowerLayers, removeCellTowerLayers,
   updateCellTowerData, updateCellTowerVisibility,
@@ -21,6 +20,16 @@ import {
   addBridgeLayers, removeBridgeLayers,
   updateBridgeData, updateBridgeVisibility,
 } from "../features/bridges/bridgeLayer";
+import {
+  addOSMLayers, removeOSMLayers,
+  updateOSMData, updateOSMVisibility,
+  toGeoJSON as osmToGeoJSON, parseOSMCounts,
+} from "../features/osm/osmLayer";
+import {
+  addElevationLayers, removeElevationLayers,
+  updateElevationData, updateElevationVisibility,
+  buildGrid, buildHeatmapGeoJSON, extractContours, pickContourLevels, calcStats,
+} from "../features/elevation/elevationLayer";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
@@ -34,24 +43,35 @@ function App() {
   const [bbox, setBbox] = useState(null);
   const [isPainting, setIsPainting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showWeather, setShowWeather] = useState(false);
-  const [showOSM, setShowOSM] = useState(false);
-  const [showElevation, setShowElevation] = useState(false);
 
-  const [enabledLayers, setEnabledLayers] = useState({ cellTowers: true, roads: true, bridges: true });
+  const [enabledLayers, setEnabledLayers] = useState({
+    cellTowers: true, roads: true, bridges: true, osm: true, elevation: true,
+  });
   const [queriedBbox, setQueriedBbox] = useState(null);
 
-  const [towerData, setTowerData] = useState(null);
+  const [towerData, setTowerData]       = useState(null);
   const [towerLoading, setTowerLoading] = useState(false);
-  const [towerError, setTowerError] = useState(null);
+  const [towerError, setTowerError]     = useState(null);
 
-  const [roadsData, setRoadsData] = useState(null);
+  const [roadsData, setRoadsData]       = useState(null);
   const [roadsLoading, setRoadsLoading] = useState(false);
-  const [roadsError, setRoadsError] = useState(null);
+  const [roadsError, setRoadsError]     = useState(null);
 
-  const [bridgesData, setBridgesData] = useState(null);
+  const [bridgesData, setBridgesData]     = useState(null);
   const [bridgesLoading, setBridgesLoading] = useState(false);
-  const [bridgesError, setBridgesError] = useState(null);
+  const [bridgesError, setBridgesError]   = useState(null);
+
+  const [osmData, setOsmData]       = useState(null);
+  const [osmLoading, setOsmLoading] = useState(false);
+  const [osmError, setOsmError]     = useState(null);
+
+  const [elevData, setElevData]       = useState(null);
+  const [elevLoading, setElevLoading] = useState(false);
+  const [elevError, setElevError]     = useState(null);
+
+  const [weatherData, setWeatherData]     = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError]   = useState(null);
 
   // ── Map initialisation ────────────────────────────────────────────
   useEffect(() => {
@@ -95,13 +115,13 @@ function App() {
     map.current.on("draw.delete", () => {
       setBbox(null);
       setIsPainting(false);
-      setShowWeather(false);
-      setShowOSM(false);
-      setShowElevation(false);
       setQueriedBbox(null);
       setTowerData(null);
       setRoadsData(null);
       setBridgesData(null);
+      setOsmData(null);
+      setElevData(null);
+      setWeatherData(null);
     });
 
     map.current.on("load", () => setMapInstance(map.current));
@@ -113,19 +133,24 @@ function App() {
     };
   }, []);
 
-  // ── Map layers (ordered: add → data → visibility) ─────────────────
+  // ── Add map layers once map is ready ─────────────────────────────
   useEffect(() => {
     if (!mapInstance) return;
     addCellTowerLayers(mapInstance);
     addRoadsLayers(mapInstance);
     addBridgeLayers(mapInstance);
+    addOSMLayers(mapInstance);
+    addElevationLayers(mapInstance);
     return () => {
       removeCellTowerLayers(mapInstance);
       removeRoadsLayers(mapInstance);
       removeBridgeLayers(mapInstance);
+      removeOSMLayers(mapInstance);
+      removeElevationLayers(mapInstance);
     };
   }, [mapInstance]);
 
+  // ── Push data into layers ─────────────────────────────────────────
   useEffect(() => {
     if (!mapInstance) return;
     updateCellTowerData(mapInstance, towerData?.towers ?? []);
@@ -143,58 +168,99 @@ function App() {
 
   useEffect(() => {
     if (!mapInstance) return;
+    updateOSMData(mapInstance, osmData?.geojson ?? null);
+  }, [mapInstance, osmData]);
+
+  useEffect(() => {
+    if (!mapInstance || !elevData) return;
+    const { results, bbox: b } = elevData;
+    const elevs = results.map((r) => r.elevation);
+    const levels = pickContourLevels(Math.min(...elevs), Math.max(...elevs));
+    updateElevationData(mapInstance, buildHeatmapGeoJSON(results, b), extractContours(results, b, levels));
+  }, [mapInstance, elevData]);
+
+  // ── Visibility ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapInstance) return;
     updateCellTowerVisibility(mapInstance, enabledLayers.cellTowers);
     updateRoadsVisibility(mapInstance, enabledLayers.roads);
     updateBridgeVisibility(mapInstance, enabledLayers.bridges);
+    updateOSMVisibility(mapInstance, enabledLayers.osm);
+    updateElevationVisibility(mapInstance, enabledLayers.elevation);
   }, [mapInstance, enabledLayers]);
 
   // ── Data fetching ─────────────────────────────────────────────────
   useEffect(() => {
     if (!queriedBbox) return;
-    const controller = new AbortController();
-    setTowerData(null);
-    setTowerLoading(true);
-    setTowerError(null);
-    fetchCellTowers({ bbox: queriedBbox, signal: controller.signal })
-      .then((data) => { setTowerData(data); setTowerLoading(false); })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        setTowerError(err.message);
-        setTowerLoading(false);
-      });
-    return () => controller.abort();
+    const ctl = new AbortController();
+    setTowerData(null); setTowerLoading(true); setTowerError(null);
+    fetchCellTowers({ bbox: queriedBbox, signal: ctl.signal })
+      .then((d) => { setTowerData(d); setTowerLoading(false); })
+      .catch((e) => { if (e.name !== 'AbortError') { setTowerError(e.message); setTowerLoading(false); } });
+    return () => ctl.abort();
   }, [queriedBbox]);
 
   useEffect(() => {
     if (!queriedBbox) return;
-    const controller = new AbortController();
-    setRoadsData(null);
-    setRoadsLoading(true);
-    setRoadsError(null);
-    fetchRoads({ bbox: queriedBbox, signal: controller.signal })
-      .then((data) => { setRoadsData(data); setRoadsLoading(false); })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        setRoadsError(err.message);
-        setRoadsLoading(false);
-      });
-    return () => controller.abort();
+    const ctl = new AbortController();
+    setRoadsData(null); setRoadsLoading(true); setRoadsError(null);
+    fetchRoads({ bbox: queriedBbox, signal: ctl.signal })
+      .then((d) => { setRoadsData(d); setRoadsLoading(false); })
+      .catch((e) => { if (e.name !== 'AbortError') { setRoadsError(e.message); setRoadsLoading(false); } });
+    return () => ctl.abort();
   }, [queriedBbox]);
 
   useEffect(() => {
     if (!queriedBbox) return;
-    const controller = new AbortController();
-    setBridgesData(null);
-    setBridgesLoading(true);
-    setBridgesError(null);
-    fetchBridges({ bbox: queriedBbox, signal: controller.signal })
-      .then((data) => { setBridgesData(data); setBridgesLoading(false); })
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        setBridgesError(err.message);
-        setBridgesLoading(false);
-      });
-    return () => controller.abort();
+    const ctl = new AbortController();
+    setBridgesData(null); setBridgesLoading(true); setBridgesError(null);
+    fetchBridges({ bbox: queriedBbox, signal: ctl.signal })
+      .then((d) => { setBridgesData(d); setBridgesLoading(false); })
+      .catch((e) => { if (e.name !== 'AbortError') { setBridgesError(e.message); setBridgesLoading(false); } });
+    return () => ctl.abort();
+  }, [queriedBbox]);
+
+  useEffect(() => {
+    if (!queriedBbox) return;
+    const ctl = new AbortController();
+    setOsmData(null); setOsmLoading(true); setOsmError(null);
+    fetchOsm({ bbox: queriedBbox, signal: ctl.signal })
+      .then((elements) => {
+        setOsmData({ geojson: osmToGeoJSON(elements), counts: parseOSMCounts(elements), total: elements.length });
+        setOsmLoading(false);
+      })
+      .catch((e) => { if (e.name !== 'AbortError') { setOsmError(e.message); setOsmLoading(false); } });
+    return () => ctl.abort();
+  }, [queriedBbox]);
+
+  useEffect(() => {
+    if (!queriedBbox) return;
+    setElevData(null); setElevLoading(true); setElevError(null);
+    const pts = buildGrid(queriedBbox);
+    const latStr = pts.map((p) => p.latitude.toFixed(6)).join(',');
+    const lngStr = pts.map((p) => p.longitude.toFixed(6)).join(',');
+    fetch(`https://api.open-meteo.com/v1/elevation?latitude=${latStr}&longitude=${lngStr}`)
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((data) => {
+        const elevations = data.elevation ?? [];
+        if (!elevations.length) throw new Error('No elevation data');
+        const results = pts.map((p, i) => ({ ...p, elevation: elevations[i] ?? 0 }));
+        setElevData({ results, bbox: queriedBbox, stats: calcStats(results.map((r) => r.elevation)) });
+        setElevLoading(false);
+      })
+      .catch((e) => { setElevError(e.message); setElevLoading(false); });
+  }, [queriedBbox]);
+
+  useEffect(() => {
+    if (!queriedBbox) return;
+    const ctl = new AbortController();
+    const lat = (queriedBbox.minLat + queriedBbox.maxLat) / 2;
+    const lng = (queriedBbox.minLng + queriedBbox.maxLng) / 2;
+    setWeatherData(null); setWeatherLoading(true); setWeatherError(null);
+    fetchWeather({ lat, lng, signal: ctl.signal })
+      .then((d) => { setWeatherData(d); setWeatherLoading(false); })
+      .catch((e) => { if (e.name !== 'AbortError') { setWeatherError(e.message); setWeatherLoading(false); } });
+    return () => ctl.abort();
   }, [queriedBbox]);
 
   // ── Callbacks ─────────────────────────────────────────────────────
@@ -202,9 +268,6 @@ function App() {
     if (!draw.current) return;
     draw.current.deleteAll();
     setBbox(null);
-    setShowWeather(false);
-    setShowOSM(false);
-    setShowElevation(false);
     draw.current.changeMode("draw_polygon");
     setIsPainting(true);
   }, []);
@@ -213,35 +276,25 @@ function App() {
     if (!draw.current) return;
     draw.current.deleteAll();
     setBbox(null);
-    setShowWeather(false);
-    setShowOSM(false);
-    setShowElevation(false);
     setQueriedBbox(null);
-    setTowerData(null);
-    setRoadsData(null);
-    setBridgesData(null);
+    setTowerData(null); setRoadsData(null); setBridgesData(null);
+    setOsmData(null); setElevData(null); setWeatherData(null);
     draw.current.changeMode("simple_select");
     setIsPainting(false);
   }, []);
 
   const copyBbox = useCallback(() => {
     if (!bbox) return;
-    const json = JSON.stringify(
-      {
-        bbox: [
-          parseFloat(bbox.minLng.toFixed(6)),
-          parseFloat(bbox.minLat.toFixed(6)),
-          parseFloat(bbox.maxLng.toFixed(6)),
-          parseFloat(bbox.maxLat.toFixed(6)),
-        ],
-        minLng: parseFloat(bbox.minLng.toFixed(6)),
-        minLat: parseFloat(bbox.minLat.toFixed(6)),
-        maxLng: parseFloat(bbox.maxLng.toFixed(6)),
-        maxLat: parseFloat(bbox.maxLat.toFixed(6)),
-      },
-      null,
-      2
-    );
+    const json = JSON.stringify({
+      bbox: [
+        parseFloat(bbox.minLng.toFixed(6)), parseFloat(bbox.minLat.toFixed(6)),
+        parseFloat(bbox.maxLng.toFixed(6)), parseFloat(bbox.maxLat.toFixed(6)),
+      ],
+      minLng: parseFloat(bbox.minLng.toFixed(6)),
+      minLat: parseFloat(bbox.minLat.toFixed(6)),
+      maxLng: parseFloat(bbox.maxLng.toFixed(6)),
+      maxLat: parseFloat(bbox.maxLat.toFixed(6)),
+    }, null, 2);
     navigator.clipboard.writeText(json).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -257,8 +310,6 @@ function App() {
   }, []);
 
   const fmt = (n) => n?.toFixed(5);
-  const centerLat = bbox ? (bbox.minLat + bbox.maxLat) / 2 : null;
-  const centerLng = bbox ? (bbox.minLng + bbox.maxLng) / 2 : null;
 
   // ── Render ────────────────────────────────────────────────────────
   return (
@@ -266,24 +317,14 @@ function App() {
       <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />
 
       {/* Left panel */}
-      <div
-        style={{
-          position: "absolute",
-          top: 20,
-          left: 20,
-          background: "rgba(0,0,0,0.85)",
-          color: "white",
-          padding: "16px",
-          borderRadius: "10px",
-          zIndex: 1,
-          width: "300px",
-          fontFamily: "Arial",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
+      <div style={{
+        position: "absolute", top: 20, left: 20,
+        background: "rgba(0,0,0,0.85)", color: "white",
+        padding: "16px", borderRadius: "10px", zIndex: 1,
+        width: "300px", fontFamily: "Arial",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+        display: "flex", flexDirection: "column", gap: 12,
+      }}>
         <h3 style={{ margin: 0, fontSize: 16 }}>Area Inspector</h3>
 
         <button
@@ -367,62 +408,26 @@ function App() {
             }}>
               ⬡  Gather Intel
             </button>
-
-            <button onClick={() => setShowWeather(true)} style={{
-              width: "100%", padding: "10px", borderRadius: "7px",
-              border: "1.5px solid #34d399", background: "rgba(52,211,153,0.12)",
-              color: "#34d399", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
-            }}>
-              ☁  Fetch Weather Data
-            </button>
-
-            <button onClick={() => setShowOSM(true)} style={{
-              width: "100%", padding: "10px", borderRadius: "7px",
-              border: "1.5px solid #f97316", background: "rgba(249,115,22,0.12)",
-              color: "#f97316", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
-            }}>
-              🌿 Fetch Nature &amp; Buildings
-            </button>
-
-            <button onClick={() => setShowElevation(true)} style={{
-              width: "100%", padding: "10px", borderRadius: "7px",
-              border: "1.5px solid #facc15", background: "rgba(250,204,21,0.10)",
-              color: "#facc15", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
-            }}>
-              ▲ Fetch Elevation Data
-            </button>
           </>
         )}
 
-        <LayerPanel enabledLayers={enabledLayers} onToggle={toggleLayer} />
+        <LayerPanel
+          enabledLayers={enabledLayers}
+          onToggle={toggleLayer}
+        />
       </div>
 
       {/* Right sidebar */}
       {queriedBbox && (
         <IntelPanel
-          towers={towerData}
-          towersLoading={towerLoading}
-          towersError={towerError}
-          roads={roadsData}
-          roadsLoading={roadsLoading}
-          roadsError={roadsError}
-          bridges={bridgesData}
-          bridgesLoading={bridgesLoading}
-          bridgesError={bridgesError}
+          towers={towerData}     towersLoading={towerLoading}   towersError={towerError}
+          roads={roadsData}      roadsLoading={roadsLoading}     roadsError={roadsError}
+          bridges={bridgesData}  bridgesLoading={bridgesLoading} bridgesError={bridgesError}
+          osm={osmData}          osmLoading={osmLoading}         osmError={osmError}
+          elevation={elevData}   elevLoading={elevLoading}       elevError={elevError}
+          weather={weatherData}  weatherLoading={weatherLoading} weatherError={weatherError}
           enabledLayers={enabledLayers}
         />
-      )}
-
-      {showWeather && centerLat && centerLng && (
-        <WeatherPanel lat={centerLat} lng={centerLng} onClose={() => setShowWeather(false)} />
-      )}
-
-      {showOSM && bbox && (
-        <OSMPanel bbox={bbox} map={map.current} onClose={() => setShowOSM(false)} />
-      )}
-
-      {showElevation && bbox && (
-        <ElevationPanel bbox={bbox} map={map.current} onClose={() => setShowElevation(false)} />
       )}
     </div>
   );

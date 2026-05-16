@@ -1,12 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 
-// ─── Open-Elevation API ───────────────────────────────────────────────────────
-// Free, no key, backed by NASA SRTM 30m data
-const OPEN_ELEVATION_URL = "https://api.open-elevation.com/api/v1/lookup";
-
-// How many sample points along each axis (grid = GRID_N × GRID_N)
-// Keep ≤20 to stay under Open-Elevation's ~500-point practical limit per request
-const GRID_N = 15;
+// Open-Meteo elevation API — free, no key, Copernicus DEM 90m, very reliable
+// Max 100 locations per request, so keep GRID_N ≤ 10 (10×10 = 100 pts)
+const GRID_N = 10;
 
 // ─── Mapbox layer IDs ─────────────────────────────────────────────────────────
 const ELEV_SOURCE       = "elevation-grid";
@@ -336,16 +332,16 @@ export default function ElevationPanel({ bbox, map, onClose }) {
     layersRef.current = false;
 
     const pts = buildGrid(bbox);
+    const latStr = pts.map((p) => p.latitude.toFixed(6)).join(",");
+    const lngStr = pts.map((p) => p.longitude.toFixed(6)).join(",");
+    const url = `https://api.open-meteo.com/v1/elevation?latitude=${latStr}&longitude=${lngStr}`;
 
-    fetch(OPEN_ELEVATION_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locations: pts }),
-    })
+    fetch(url)
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((data) => {
-        const res = data.results || [];
-        if (res.length === 0) throw new Error("No elevation data returned");
+        const elevations = data.elevation || [];
+        if (elevations.length === 0) throw new Error("No elevation data returned");
+        const res = pts.map((p, i) => ({ ...p, elevation: elevations[i] ?? 0 }));
         setResults(res);
         setLoading(false);
       })
@@ -407,7 +403,7 @@ export default function ElevationPanel({ bbox, map, onClose }) {
             ▲ ELEVATION · SRTM
           </span>
           <div style={{ fontSize: 10, color: "#475569", marginTop: 3, letterSpacing: "0.03em" }}>
-            {GRID_N}×{GRID_N} grid · ~{areaKm2} km² · open-elevation.com
+            {GRID_N}×{GRID_N} grid · ~{areaKm2} km² · open-meteo.com
           </div>
         </div>
         <button
@@ -429,7 +425,7 @@ export default function ElevationPanel({ bbox, map, onClose }) {
             }}>⛰</div>
             <div style={{ fontSize: 13, color: "#475569" }}>Sampling elevation grid…</div>
             <div style={{ fontSize: 10, color: "#334155", marginTop: 6 }}>
-              {GRID_N * GRID_N} points via NASA SRTM
+              {GRID_N * GRID_N} points via Copernicus DEM
             </div>
             <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
           </div>
@@ -627,7 +623,7 @@ export default function ElevationPanel({ bbox, map, onClose }) {
             </div>
 
             <div style={{ fontSize: 10, color: "#334155", textAlign: "right" }}>
-              © NASA SRTM · open-elevation.com · CC0
+              © Copernicus DEM · open-meteo.com · CC0
             </div>
           </>
         )}

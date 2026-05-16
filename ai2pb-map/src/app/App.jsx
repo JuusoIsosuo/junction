@@ -3,7 +3,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import mapboxgl from "../services/mapbox";
 import WeatherPanel from "../features/weather/WeatherPanel";
 import OSMPanel from "../features/osm/OSMPanel";
-import ElevationPanel from "../ElevationPanel";
+import ElevationPanel from "../features/elevation/ElevationPanel";
 import { IntelPanel } from "../features/intel/IntelPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
 import { fetchCellTowers } from "../services/cellTowerService";

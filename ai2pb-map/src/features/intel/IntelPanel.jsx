@@ -1,4 +1,5 @@
 import { RADIO_COLORS } from "../cellTowers/cellTowerLayer";
+import { INFRA_TYPE_CONFIG } from "../../services/infrastructureService";
 
 const ROAD_COLORS = {
   motorway:     '#f97316',
@@ -71,6 +72,7 @@ export function IntelPanel({
   towers, towersLoading, towersError,
   roads, roadsLoading, roadsError,
   bridges, bridgesLoading, bridgesError,
+  infrastructure, infraLoading, infraError,
   osm, osmLoading, osmError,
   elevation, elevLoading, elevError,
   enabledLayers,
@@ -139,6 +141,37 @@ export function IntelPanel({
               <BigNum value={bridges.count} unit="bridges" />
               <div style={{ fontSize: 11, color: '#9ca3af' }}>
                 Click a bridge on the map to see max weight &amp; details.
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Infrastructure */}
+      {enabledLayers.infrastructure && (
+        <div style={sec}>
+          <SectionHeader color="#fbbf24" label="Infrastructure" />
+          <StatusRow loading={infraLoading} error={infraError} />
+          {infrastructure && !infraLoading && (
+            <>
+              <BigNum value={infrastructure.count} unit="sites" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {Object.entries(infrastructure.typeCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([type, count]) => {
+                    const cfg = INFRA_TYPE_CONFIG[type];
+                    return (
+                      <BreakdownRow
+                        key={type}
+                        color={cfg?.color ?? '#6b7280'}
+                        label={cfg?.label ?? type}
+                        count={count}
+                      />
+                    );
+                  })}
+              </div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                Click a site on the map for details.
               </div>
             </>
           )}

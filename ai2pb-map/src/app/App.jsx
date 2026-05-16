@@ -9,6 +9,7 @@ import { LayerPanel } from "../features/layers/LayerPanel";
 import { fetchCellTowers } from "../services/cellTowerService";
 import { fetchRoads } from "../services/roadsService";
 import { fetchBridges } from "../services/bridgeService";
+import { fetchInfrastructure } from "../services/infrastructureService";
 import { fetchOsm } from "../services/osmClient";
 import {
   addCellTowerLayers, removeCellTowerLayers,
@@ -22,6 +23,10 @@ import {
   addBridgeLayers, removeBridgeLayers,
   updateBridgeData, updateBridgeVisibility,
 } from "../features/bridges/bridgeLayer";
+import {
+  addInfrastructureLayers, removeInfrastructureLayers,
+  updateInfrastructureData, updateInfrastructureVisibility,
+} from "../features/infrastructure/infrastructureLayer";
 import {
   addOSMLayers, removeOSMLayers,
   updateOSMData, updateBuildingsVisibility, updateNatureVisibility,
@@ -51,7 +56,7 @@ function App() {
   const [showWeather, setShowWeather] = useState(false);
 
   const [enabledLayers, setEnabledLayers] = useState({
-    cellTowers: true, roads: true, bridges: true, buildings: true, nature: true, elevation: true,
+    cellTowers: true, roads: true, bridges: true, infrastructure: true, buildings: true, nature: true, elevation: true,
   });
   const [queriedBbox, setQueriedBbox] = useState(null);
 
@@ -66,6 +71,10 @@ function App() {
   const [bridgesData, setBridgesData]     = useState(null);
   const [bridgesLoading, setBridgesLoading] = useState(false);
   const [bridgesError, setBridgesError]   = useState(null);
+
+  const [infraData, setInfraData]       = useState(null);
+  const [infraLoading, setInfraLoading] = useState(false);
+  const [infraError, setInfraError]     = useState(null);
 
   const [osmData, setOsmData]           = useState(null);
   const [osmElements, setOsmElements]   = useState([]);
@@ -130,6 +139,7 @@ function App() {
       setTowerData(null);
       setRoadsData(null);
       setBridgesData(null);
+      setInfraData(null);
       setOsmData(null);
       setOsmElements([]);
       setElevData(null);
@@ -172,12 +182,14 @@ function App() {
     addCellTowerLayers(mapInstance);
     addRoadsLayers(mapInstance);
     addBridgeLayers(mapInstance);
+    addInfrastructureLayers(mapInstance);
     addOSMLayers(mapInstance);
     addElevationLayers(mapInstance);
     return () => {
       removeCellTowerLayers(mapInstance);
       removeRoadsLayers(mapInstance);
       removeBridgeLayers(mapInstance);
+      removeInfrastructureLayers(mapInstance);
       removeOSMLayers(mapInstance);
       removeElevationLayers(mapInstance);
     };
@@ -201,6 +213,11 @@ function App() {
 
   useEffect(() => {
     if (!mapInstance) return;
+    updateInfrastructureData(mapInstance, infraData?.geojson ?? null);
+  }, [mapInstance, infraData]);
+
+  useEffect(() => {
+    if (!mapInstance) return;
     updateOSMData(mapInstance, osmData?.geojson ?? null);
   }, [mapInstance, osmData]);
 
@@ -218,6 +235,7 @@ function App() {
     updateCellTowerVisibility(mapInstance, enabledLayers.cellTowers);
     updateRoadsVisibility(mapInstance, enabledLayers.roads);
     updateBridgeVisibility(mapInstance, enabledLayers.bridges);
+    updateInfrastructureVisibility(mapInstance, enabledLayers.infrastructure);
     updateBuildingsVisibility(mapInstance, enabledLayers.buildings);
     updateNatureVisibility(mapInstance, enabledLayers.nature);
     updateElevationVisibility(mapInstance, enabledLayers.elevation);
@@ -251,6 +269,16 @@ function App() {
     fetchBridges({ bbox: queriedBbox, signal: ctl.signal })
       .then((d) => { setBridgesData(d); setBridgesLoading(false); })
       .catch((e) => { if (e.name !== "AbortError") { setBridgesError(e.message); setBridgesLoading(false); } });
+    return () => ctl.abort();
+  }, [queriedBbox]);
+
+  useEffect(() => {
+    if (!queriedBbox) return;
+    const ctl = new AbortController();
+    setInfraData(null); setInfraLoading(true); setInfraError(null);
+    fetchInfrastructure({ bbox: queriedBbox, signal: ctl.signal })
+      .then((d) => { setInfraData(d); setInfraLoading(false); })
+      .catch((e) => { if (e.name !== 'AbortError') { setInfraError(e.message); setInfraLoading(false); } });
     return () => ctl.abort();
   }, [queriedBbox]);
 
@@ -303,7 +331,8 @@ function App() {
     setBbox(null);
     setQueriedBbox(null);
     setTowerData(null); setRoadsData(null); setBridgesData(null);
-    setOsmData(null); setOsmElements([]); setElevData(null); setShowWeather(false); setShowAnalysis(false);
+    setInfraData(null); setOsmData(null); setOsmElements([]); setElevData(null);
+    setShowWeather(false); setShowAnalysis(false);
     const src = map.current?.getSource("drawn-area");
     if (src) src.setData({ type: "FeatureCollection", features: [] });
     draw.current.changeMode("simple_select");
@@ -512,11 +541,12 @@ function App() {
       {/* Right sidebar */}
       {queriedBbox && (
         <IntelPanel
-          towers={towerData}     towersLoading={towerLoading}   towersError={towerError}
-          roads={roadsData}      roadsLoading={roadsLoading}     roadsError={roadsError}
-          bridges={bridgesData}  bridgesLoading={bridgesLoading} bridgesError={bridgesError}
-          osm={osmData}          osmLoading={osmLoading}         osmError={osmError}
-          elevation={elevData}   elevLoading={elevLoading}       elevError={elevError}
+          towers={towerData}           towersLoading={towerLoading}   towersError={towerError}
+          roads={roadsData}            roadsLoading={roadsLoading}     roadsError={roadsError}
+          bridges={bridgesData}        bridgesLoading={bridgesLoading} bridgesError={bridgesError}
+          infrastructure={infraData}   infraLoading={infraLoading}     infraError={infraError}
+          osm={osmData}                osmLoading={osmLoading}         osmError={osmError}
+          elevation={elevData}         elevLoading={elevLoading}       elevError={elevError}
           enabledLayers={enabledLayers}
         />
       )}

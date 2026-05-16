@@ -12,26 +12,6 @@ const ROAD_COLORS = {
   other:        '#57534e',
 };
 
-const WMO_ICON = {
-  0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
-  45: '🌫️', 48: '🌫️',
-  51: '🌦️', 53: '🌦️', 55: '🌧️',
-  61: '🌧️', 63: '🌧️', 65: '🌧️',
-  71: '❄️', 73: '❄️', 75: '❄️',
-  80: '🌦️', 81: '🌧️', 82: '⛈️',
-  95: '⛈️', 96: '⛈️', 99: '⛈️',
-};
-
-const WMO_DESC = {
-  0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
-  45: 'Fog', 48: 'Icy fog',
-  51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
-  61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
-  71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
-  80: 'Light showers', 81: 'Showers', 82: 'Heavy showers',
-  95: 'Thunderstorm', 96: 'Thunderstorm w/ hail', 99: 'Heavy thunderstorm w/ hail',
-};
-
 function SectionHeader({ color, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'monospace',
@@ -93,7 +73,6 @@ export function IntelPanel({
   bridges, bridgesLoading, bridgesError,
   osm, osmLoading, osmError,
   elevation, elevLoading, elevError,
-  weather, weatherLoading, weatherError,
   enabledLayers,
 }) {
   const anyEnabled = Object.values(enabledLayers).some(Boolean);
@@ -101,8 +80,6 @@ export function IntelPanel({
 
   const radioCounts = {};
   towers?.towers.forEach((t) => { radioCounts[t.radio] = (radioCounts[t.radio] ?? 0) + 1; });
-
-  const windDir = (deg) => ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8];
 
   return (
     <div style={{
@@ -236,37 +213,6 @@ export function IntelPanel({
         </div>
       )}
 
-      {/* Weather — always shown */}
-      <div style={{ ...sec, borderBottom: 'none' }}>
-        <SectionHeader color="#34d399" label="Weather" />
-        <StatusRow loading={weatherLoading} error={weatherError} />
-        {weather && !weatherLoading && (() => {
-          const c = weather.current;
-          const code = c.weather_code;
-          return (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 28 }}>{WMO_ICON[code] ?? '🌡️'}</span>
-                <div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#f3f4f6', fontFamily: 'monospace', lineHeight: 1 }}>
-                    {Math.round(c.temperature_2m)}°C
-                  </div>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                    {WMO_DESC[code] ?? 'Unknown'}
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <BreakdownRow color="#7dd3fc" label="Humidity" count={`${c.relative_humidity_2m}%`} />
-                <BreakdownRow color="#94a3b8" label="Wind" count={`${c.wind_speed_10m} m/s ${windDir(c.wind_direction_10m)}`} />
-                {c.precipitation > 0 && (
-                  <BreakdownRow color="#38bdf8" label="Precip." count={`${c.precipitation} mm`} />
-                )}
-              </div>
-            </>
-          );
-        })()}
-      </div>
     </div>
   );
 }

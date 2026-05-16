@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import mapboxgl from "../services/mapbox";
+import WeatherPanel from "../features/weather/WeatherPanel";
 import { IntelPanel } from "../features/intel/IntelPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
 import { fetchCellTowers } from "../services/cellTowerService";
 import { fetchRoads } from "../services/roadsService";
 import { fetchBridges } from "../services/bridgeService";
 import { fetchOsm } from "../services/osmClient";
-import { fetchWeather } from "../services/weatherClient";
 import {
   addCellTowerLayers, removeCellTowerLayers,
   updateCellTowerData, updateCellTowerVisibility,
@@ -43,6 +43,7 @@ function App() {
   const [bbox, setBbox] = useState(null);
   const [isPainting, setIsPainting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showWeather, setShowWeather] = useState(false);
 
   const [enabledLayers, setEnabledLayers] = useState({
     cellTowers: true, roads: true, bridges: true, buildings: true, nature: true, elevation: true,
@@ -68,10 +69,6 @@ function App() {
   const [elevData, setElevData]       = useState(null);
   const [elevLoading, setElevLoading] = useState(false);
   const [elevError, setElevError]     = useState(null);
-
-  const [weatherData, setWeatherData]     = useState(null);
-  const [weatherLoading, setWeatherLoading] = useState(false);
-  const [weatherError, setWeatherError]   = useState(null);
 
   // ── Map initialisation ────────────────────────────────────────────
   useEffect(() => {
@@ -121,7 +118,7 @@ function App() {
       setBridgesData(null);
       setOsmData(null);
       setElevData(null);
-      setWeatherData(null);
+      setShowWeather(false);
     });
 
     map.current.on("load", () => setMapInstance(map.current));
@@ -252,18 +249,6 @@ function App() {
       .catch((e) => { setElevError(e.message); setElevLoading(false); });
   }, [queriedBbox]);
 
-  useEffect(() => {
-    if (!queriedBbox) return;
-    const ctl = new AbortController();
-    const lat = (queriedBbox.minLat + queriedBbox.maxLat) / 2;
-    const lng = (queriedBbox.minLng + queriedBbox.maxLng) / 2;
-    setWeatherData(null); setWeatherLoading(true); setWeatherError(null);
-    fetchWeather({ lat, lng, signal: ctl.signal })
-      .then((d) => { setWeatherData(d); setWeatherLoading(false); })
-      .catch((e) => { if (e.name !== 'AbortError') { setWeatherError(e.message); setWeatherLoading(false); } });
-    return () => ctl.abort();
-  }, [queriedBbox]);
-
   // ── Callbacks ─────────────────────────────────────────────────────
   const activatePaint = useCallback(() => {
     if (!draw.current) return;
@@ -279,7 +264,7 @@ function App() {
     setBbox(null);
     setQueriedBbox(null);
     setTowerData(null); setRoadsData(null); setBridgesData(null);
-    setOsmData(null); setElevData(null); setWeatherData(null);
+    setOsmData(null); setElevData(null); setShowWeather(false);
     draw.current.changeMode("simple_select");
     setIsPainting(false);
   }, []);
@@ -320,6 +305,8 @@ function App() {
   }, []);
 
   const fmt = (n) => n?.toFixed(5);
+  const centerLat = bbox ? (bbox.minLat + bbox.maxLat) / 2 : null;
+  const centerLng = bbox ? (bbox.minLng + bbox.maxLng) / 2 : null;
 
   // ── Render ────────────────────────────────────────────────────────
   return (
@@ -418,6 +405,14 @@ function App() {
             }}>
               ⬡  Gather Intel
             </button>
+
+            <button onClick={() => setShowWeather(true)} style={{
+              width: "100%", padding: "10px", borderRadius: "7px",
+              border: "1.5px solid #34d399", background: "rgba(52,211,153,0.12)",
+              color: "#34d399", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
+            }}>
+              ☁  Fetch Weather Data
+            </button>
           </>
         )}
 
@@ -436,9 +431,12 @@ function App() {
           bridges={bridgesData}  bridgesLoading={bridgesLoading} bridgesError={bridgesError}
           osm={osmData}          osmLoading={osmLoading}         osmError={osmError}
           elevation={elevData}   elevLoading={elevLoading}       elevError={elevError}
-          weather={weatherData}  weatherLoading={weatherLoading} weatherError={weatherError}
           enabledLayers={enabledLayers}
         />
+      )}
+
+      {showWeather && centerLat && centerLng && (
+        <WeatherPanel lat={centerLat} lng={centerLng} onClose={() => setShowWeather(false)} />
       )}
     </div>
   );

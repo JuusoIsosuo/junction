@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="Generator" content="Microsoft Word compatible">
+<style>
+  body {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    margin: 2.5cm 3cm;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 24pt;
+    color: #1e3a5f;
+    border-bottom: 3px solid #1e3a5f;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 16pt;
+    color: #1e3a5f;
+    border-bottom: 1px solid #c0c0c0;
+    padding-bottom: 4px;
+    margin-top: 24pt;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    color: #2e5c8a;
+    margin-top: 14pt;
+    margin-bottom: 4pt;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 11pt;
+    color: #444;
+    margin-top: 10pt;
+    margin-bottom: 2pt;
+    font-style: italic;
+  }
+  p {
+    margin: 4pt 0 8pt 0;
+  }
+  ul, ol {
+    margin: 4pt 0 10pt 0;
+    padding-left: 20pt;
+  }
+  li {
+    margin-bottom: 3pt;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10pt 0 14pt 0;
+    font-size: 10.5pt;
+  }
+  th {
+    background-color: #1e3a5f;
+    color: white;
+    padding: 6pt 10pt;
+    text-align: left;
+  }
+  td {
+    border: 1px solid #c8d0d8;
+    padding: 5pt 10pt;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background-color: #f2f5f8;
+  }
+  .cover {
+    text-align: center;
+    padding: 60pt 0 40pt 0;
+    page-break-after: always;
+  }
+  .cover h1 {
+    font-size: 32pt;
+    border: none;
+    color: #1e3a5f;
+    margin-bottom: 8pt;
+  }
+  .cover .subtitle {
+    font-size: 16pt;
+    color: #555;
+    margin-bottom: 40pt;
+  }
+  .cover .meta {
+    font-size: 11pt;
+    color: #777;
+  }
+  .toc {
+    background: #f5f7fa;
+    border: 1px solid #c8d0d8;
+    padding: 16pt 20pt;
+    margin-bottom: 20pt;
+    page-break-after: always;
+  }
+  .toc h2 {
+    border: none;
+    margin-top: 0;
+    font-size: 14pt;
+  }
+  .toc ol {
+    margin: 0;
+  }
+  .toc li {
+    margin-bottom: 4pt;
+  }
+  .toc a {
+    color: #1e3a5f;
+    text-decoration: none;
+  }
+  .infobox {
+    background: #eaf4fb;
+    border-left: 4px solid #2e7db5;
+    padding: 8pt 12pt;
+    margin: 10pt 0;
+  }
+  .warnbox {
+    background: #fff8e6;
+    border-left: 4px solid #f0a500;
+    padding: 8pt 12pt;
+    margin: 10pt 0;
+  }
+  code {
+    font-family: Consolas, monospace;
+    font-size: 9.5pt;
+    background: #f0f0f0;
+    padding: 1pt 4pt;
+    border-radius: 2px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2pt 6pt;
+    border-radius: 3pt;
+    font-size: 9pt;
+    font-weight: bold;
+    color: white;
+  }
+  .badge-green  { background: #22c55e; }
+  .badge-yellow { background: #eab308; }
+  .badge-red    { background: #ef4444; }
+  .badge-blue   { background: #3b82f6; }
+  .badge-orange { background: #f97316; }
+  .page-break { page-break-before: always; }
+  .section-number { color: #888; }
+</style>
+</head>
+<body>
+
+<!-- Kansilehti -->
+<div class="cover">
+  <h1>AI2PB Map</h1>
+  <div class="subtitle">Sotilaskäyttöön suunniteltu kartta- ja tiedusteluanalyysiohjelma</div>
+  <hr style="width:200pt; border-color:#1e3a5f;">
+  <div class="meta">
+    <p><strong>Versio:</strong> 1.0</p>
+    <p><strong>Päivitetty:</strong> Toukokuu 2026</p>
+    <p><strong>Projekti:</strong> Junction Hackathon</p>
+    <p><strong>Tekijä:</strong> Juuso Isosuo</p>
+  </div>
+</div>
+
+<!-- Sisällysluettelo -->
+<div class="toc">
+  <h2>Sisällysluettelo</h2>
+  <ol>
+    <li><a href="#yleiskatsaus">Yleiskatsaus</a></li>
+    <li><a href="#tekninen">Tekninen ympäristö</a></li>
+    <li><a href="#kaytto">Käyttöohjeet — Perustoiminnot</a></li>
+    <li><a href="#ominaisuudet">Ominaisuudet</a>
+      <ol>
+        <li><a href="#alueen-valinta">Alueen valinta (Paint Area)</a></li>
+        <li><a href="#tiedustelu">Tiedustelutietojen keruu (Gather Intel)</a></li>
+        <li><a href="#kerrokset">Karttakerrokset (Layers)</a></li>
+        <li><a href="#vaesto">Väestötiheys (Population)</a></li>
+        <li><a href="#korkeustieto">Korkeustieto (Elevation)</a></li>
+        <li><a href="#los">Näkyvyysanalyysi (Line of Sight)</a></li>
+        <li><a href="#saatiedot">Säätiedot (Weather)</a></li>
+        <li><a href="#drone">Dronearviointi (Drone Assessment)</a></li>
+        <li><a href="#ai-analyysi">Tekoälyanalyysi (AI Analysis)</a></li>
+      </ol>
+    </li>
+    <li><a href="#rajapinnat">Ulkoiset rajapinnat (API:t)</a></li>
+    <li><a href="#arkkitehtuuri">Ohjelmistoarkkitehtuuri</a></li>
+    <li><a href="#palvelin">Palvelin (Backend)</a></li>
+  </ol>
+</div>
+
+<!-- 1. Yleiskatsaus -->
+<h2 id="yleiskatsaus">1. Yleiskatsaus</h2>
+
+<p>
+  <strong>AI2PB Map</strong> on selainpohjainen kartta- ja tilannekuvasovellus, joka on suunniteltu
+  tukemaan taktista tilannearvioita. Sovellus yhdistää satelliittikuvakartan, avoimen datan lähteet
+  sekä tekoälyanalyysin yhdeksi käyttöliittymäksi, jonka avulla voidaan nopeasti analysoida minkä
+  tahansa maantieteellisen alueen infrastruktuuria, väestöä, maastoa ja olosuhteita.
+</p>
+
+<div class="infobox">
+  <strong>Pääkäyttötarkoitus:</strong> Taktinen alue-analyysi — infrastruktuuri, liikkumisesteet,
+  näkyvyys, droneoperaatioiden sääarviointi ja väestötiheys piirretyllä alueella.
+</div>
+
+<h3>Keskeisimmät ominaisuudet lyhyesti</h3>
+<ul>
+  <li>Vapaamuotoinen alueen piirtäminen kartalle</li>
+  <li>Automaattinen infrastruktuuritietojen lataus (tiet, sillat, rakennukset, solmutornit jne.)</li>
+  <li>Väestötiheyden visualisointi kartalla (Tilastokeskus 2022, 250m tarkkuus)</li>
+  <li>Korkeuskartta ja korkeuskäyrät</li>
+  <li>Näkyvyysanalyysi (Line of Sight) rakennukset, maaston korkeuserot ja metsät huomioiden</li>
+  <li>Reaaliaikaiset säätiedot ja droneoperaatioiden arviointiohjelma</li>
+  <li>Tekoälypohjainen maastoanalyysi (tekee yhteenvedon valitusta alueesta)</li>
+</ul>
+
+<!-- 2. Tekninen ympäristö -->
+<div class="page-break"></div>
+<h2 id="tekninen">2. Tekninen ympäristö</h2>
+
+<table>
+  <tr><th>Komponentti</th><th>Teknologia</th><th>Versio / Huomio</th></tr>
+  <tr><td>Frontend-runko</td><td>React</td><td>19.x</td></tr>
+  <tr><td>Karttakirjasto</td><td>Mapbox GL JS</td><td>3.23, satelliittikuvakartta</td></tr>
+  <tr><td>Alueen piirtäminen</td><td>Mapbox GL Draw</td><td>Monikulmion piirto</td></tr>
+  <tr><td>Build-työkalu</td><td>Vite</td><td>Kehitys- ja tuotantobuildi</td></tr>
+  <tr><td>Backend-palvelin</td><td>Node.js + Express</td><td>Portti 5174, CORS-proxy</td></tr>
+  <tr><td>Karttakarttapalvelu</td><td>Mapbox Satellite Streets</td><td>Satelliitti + tiet</td></tr>
+</table>
+
+<h3>Ulkoiset datalähteet</h3>
+<table>
+  <tr><th>Palvelu</th><th>Käyttötarkoitus</th><th>Protokolla</th></tr>
+  <tr><td>OpenStreetMap / Overpass API</td><td>Rakennukset, tiet, sillat, infrastruktuuri, sotilaskohteet, luonto</td><td>REST POST</td></tr>
+  <tr><td>OpenCelliD (opencellid.org)</td><td>Mobiiliverkon tukiasemat</td><td>REST GET</td></tr>
+  <tr><td>Open-Meteo</td><td>Säätiedot (nykyhetki + 48h ennuste), korkeusdata</td><td>REST GET</td></tr>
+  <tr><td>Tilastokeskus WFS</td><td>Väestöruututilasto 2022, 250m / 1km ruudukko</td><td>WFS 2.0</td></tr>
+  <tr><td>Tekoälypalvelu (Confidential Mind)</td><td>Maastoanalyysi OpenAI-yhteensopiva API</td><td>REST POST</td></tr>
+</table>
+
+<!-- 3. Käyttöohjeet -->
+<div class="page-break"></div>
+<h2 id="kaytto">3. Käyttöohjeet — Perustoiminnot</h2>
+
+<h3>Sovelluksen käynnistäminen</h3>
+<ol>
+  <li>Käynnistä backend: <code>node server/index.js</code> (portti 5174)</li>
+  <li>Käynnistä frontend: <code>npm run dev</code></li>
+  <li>Avaa selaimessa: <code>http://localhost:5173</code></li>
+</ol>
+
+<h3>Tyypillinen käyttöjärjestys</h3>
+<ol>
+  <li><strong>Paint Area</strong> — Piirrä analyysimonikulmio kartalle</li>
+  <li><strong>Gather Intel</strong> — Lataa kaikki datalayerit piirretyltä alueelta</li>
+  <li>Tarkastele tietoja vasemmalta paneelilta ja oikeasta sivupalkista</li>
+  <li>Ota käyttöön haluamasi karttakerrokset (Layers-paneeli)</li>
+  <li>Käytä erikoistyökaluja tarpeen mukaan (LoS, Weather, Drone, AI)</li>
+</ol>
+
+<div class="warnbox">
+  <strong>Huomio:</strong> Tekoälyanalyysi vaatii ympäristömuuttujat
+  <code>CONFIDENTIAL_MIND_BASE_URL</code> ja <code>CONFIDENTIAL_MIND_API_KEY</code>
+  asetettuna palvelimen <code>.env</code>-tiedostoon.
+</div>
+
+<!-- 4. Ominaisuudet -->
+<div class="page-break"></div>
+<h2 id="ominaisuudet">4. Ominaisuudet</h2>
+
+<!-- 4.1 -->
+<h3 id="alueen-valinta">4.1 Alueen valinta (Paint Area)</h3>
+<p>
+  Sovelluksen ydintyökalu. Käyttäjä piirtää vapaamuotoisen monikulmion kartalle, joka määrittää
+  analysoitavan alueen. Kaikki muut ominaisuudet toimivat tämän rajauksen sisällä.
+</p>
+<ul>
+  <li>Klikkaa <strong>⬚ Paint Area</strong> aloittaaksesi piirtämisen</li>
+  <li>Klikkaa kartalla pisteitä monikulmion muodostamiseksi</li>
+  <li>Kaksoisklikkaa sulkeaksesi monikulmion</li>
+  <li>Sovellus laskee automaattisesti <em>bounding boxin</em> (min/max koordinaatit)</li>
+  <li>Koordinaatit voi kopioida JSON-muodossa <strong>Copy JSON</strong> -painikkeella</li>
+  <li><strong>Clear</strong> poistaa alueen ja nollaa kaiken datan</li>
+</ul>
+
+<!-- 4.2 -->
+<h3 id="tiedustelu">4.2 Tiedustelutietojen keruu (Gather Intel)</h3>
+<p>
+  <strong>⬡ Gather Intel</strong> -painike käynnistää datan haun kaikista tietolähteistä
+  samanaikaisesti. Haettavat tiedot näkyvät oikeassa sivupalkissa (<em>Intel Panel</em>).
+</p>
+
+<h4>Hakematon data</h4>
+<table>
+  <tr><th>Osio</th><th>Lähde</th><th>Mitä näytetään</th></tr>
+  <tr>
+    <td>Väestö</td>
+    <td>Tilastokeskus WFS / OSM</td>
+    <td>Kokonaisväestö, sukupuolijakauma, ikäjakauma (6 ryhmää)</td>
+  </tr>
+  <tr>
+    <td>Solmutornit</td>
+    <td>OpenCelliD</td>
+    <td>Mobiilitukiasemien lukumäärä (GSM/UMTS/LTE/NR) ja kattavuusympyrät</td>
+  </tr>
+  <tr>
+    <td>Tiet</td>
+    <td>OpenStreetMap</td>
+    <td>Tieluokittelu (moottoritie → polku), pituudet</td>
+  </tr>
+  <tr>
+    <td>Sillat</td>
+    <td>OpenStreetMap</td>
+    <td>Sillat maksimipainoineen, materiaali ja leveys</td>
+  </tr>
+  <tr>
+    <td>Infrastruktuuri</td>
+    <td>OpenStreetMap</td>
+    <td>Voimalaitokset, padot, sairaalat, tehtaat, vesilaitokset</td>
+  </tr>
+  <tr>
+    <td>Sotilaskohteet</td>
+    <td>OpenStreetMap</td>
+    <td>Tukikohdat, bunkkereita, lentokenttiä, tarkastuspisteet, ammusvarastot</td>
+  </tr>
+  <tr>
+    <td>Rakennukset &amp; luonto</td>
+    <td>OpenStreetMap</td>
+    <td>Rakennusten jalanjäljet, metsät, vesistöt, puistot</td>
+  </tr>
+  <tr>
+    <td>Korkeusdata</td>
+    <td>Open-Meteo Elevation API</td>
+    <td>10×10 korkeuspisteet → lämpökartta + korkeuskäyrät</td>
+  </tr>
+</table>
+
+<!-- 4.3 -->
+<div class="page-break"></div>
+<h3 id="kerrokset">4.3 Karttakerrokset (Layers)</h3>
+<p>
+  Jokainen datatyypi on oma karttakerros, joka voidaan kytkeä päälle/pois
+  <strong>Layers</strong>-paneelista. <strong>ALL ON / ALL OFF</strong> kytkee kaikki kerralla.
+</p>
+
+<table>
+  <tr><th>Layer</th><th>Väri</th><th>Kartalla näkyy</th></tr>
+  <tr><td>Cell Towers</td><td style="color:#ef4444">■ punainen</td><td>Pisteet tukiasemista + kattavuusympyrät</td></tr>
+  <tr><td>Roads</td><td style="color:#3b82f6">■ sininen</td><td>Tieverkosto luokiteltuna</td></tr>
+  <tr><td>Bridges</td><td style="color:#f97316">■ oranssi</td><td>Sillat korostettuina</td></tr>
+  <tr><td>Infrastructure</td><td style="color:#fbbf24">■ keltainen</td><td>Kriittinen infrastruktuuri pisteinä</td></tr>
+  <tr><td>Military</td><td style="color:#6b7c3e">■ vihreä</td><td>Sotilaskohteet</td></tr>
+  <tr><td>Buildings</td><td style="color:#a78bfa">■ violetti</td><td>Rakennusten jalanjäljet</td></tr>
+  <tr><td>Nature</td><td style="color:#34d399">■ vaaleanvihreä</td><td>Metsät, vesistöt, puistot</td></tr>
+  <tr><td>Elevation</td><td style="color:#facc15">■ keltainen</td><td>Korkeuslämpökartta + korkeuskäyrät</td></tr>
+  <tr><td>Population</td><td style="color:#f97316">■ oranssi</td><td>Väestötiheyden ruutukartta</td></tr>
+</table>
+
+<p>
+  Kerroksen kytkeminen pois päältä piilottaa sekä karttavisualisoinnin että
+  vastaavan osion oikeasta tietopaneelista.
+</p>
+
+<!-- 4.4 -->
+<h3 id="vaesto">4.4 Väestötiheys (Population)</h3>
+<p>
+  Visualisoi väestön jakautumisen alueella choropleth-kartalla (ruutukartta).
+</p>
+
+<h4>Datalähteet</h4>
+<ul>
+  <li>
+    <strong>Suomi:</strong> Tilastokeskuksen väestöruututilasto 2022. Sovellus yrittää ensin
+    250 m × 250 m ruudukkoa tarkkuuden maksimoimiseksi ja putoaa 1 km × 1 km ruudukkoon
+    jos hienompi data ei ole saatavilla.
+  </li>
+  <li>
+    <strong>Muut alueet:</strong> OpenStreetMap:n taajama-pisteet (city/town/village/hamlet)
+    väestömäärällä varustettuna.
+  </li>
+  <li>
+    <strong>Varasuunnitelma:</strong> Pinta-ala × 18 hlö/km² arvio, jos muuta dataa ei löydy.
+  </li>
+</ul>
+
+<h4>Väritys</h4>
+<p>
+  Värit ovat <strong>suhteellisia</strong> — ne normalisoidaan alueen omaan maksimiin,
+  joten sekä tiheät kaupunkilähiöt että harvaan asutut maaseutualueet näyttävät
+  konsentraatioerot selkeästi omassa mittakaavassaan.
+</p>
+<table>
+  <tr><th>Väri</th><th>Merkitys (suhteellinen osuus maksimista)</th></tr>
+  <tr><td style="background:#fef08a; width:60px">&nbsp;</td><td>Erittäin vähän asukkaita (2–15 %)</td></tr>
+  <tr><td style="background:#fbbf24">&nbsp;</td><td>Vähän asukkaita (15–35 %)</td></tr>
+  <tr><td style="background:#f97316">&nbsp;</td><td>Kohtalainen tiheys (35–60 %)</td></tr>
+  <tr><td style="background:#ef4444">&nbsp;</td><td>Korkea tiheys (60–85 %)</td></tr>
+  <tr><td style="background:#991b1b; color:white">&nbsp;</td><td>Hyvin korkea tiheys (85–100 % — tiheimmät alueet)</td></tr>
+</table>
+
+<p>Klikkaamalla ruutua kartalla näet kyseisen 250 m² / 1 km² solun asukasmäärän ponnahdusikkunassa.</p>
+
+<h4>Intel-paneeli</h4>
+<p>
+  Kun Population-layer on päällä, oikeassa sivupalkissa näytetään:
+</p>
+<ul>
+  <li>Kokonaisväestö asukasluvulla</li>
+  <li>Sukupuolijakauma (miehet/naiset, %)</li>
+  <li>Ikäjakauma 6 ryhmässä (0–14, 15–29, 30–44, 45–59, 60–74, 75+)</li>
+  <li>Tietolähde ja laskentaperusta</li>
+</ul>
+
+<!-- 4.5 -->
+<div class="page-break"></div>
+<h3 id="korkeustieto">4.5 Korkeustieto (Elevation)</h3>
+<p>
+  Hakee 100 korkeuspistettä (10 × 10 ruudukko) valitulta alueelta Open-Meteo Elevation API:sta
+  ja visualisoi ne kahdella tavalla:
+</p>
+<ul>
+  <li>
+    <strong>Lämpökartta (Heatmap):</strong> Jatkuva värigradientti korkeus­eroille —
+    matala = sininen/violeetti, korkea = keltainen/punainen.
+  </li>
+  <li>
+    <strong>Korkeuskäyrät (Contours):</strong> Viivakerros, jossa käyrät piirretään
+    automaattisesti sopivilla korkeusväleillä (esim. 10 m, 25 m tai 100 m riippuen
+    alueen korkeuserosta).
+  </li>
+</ul>
+<p>
+  Oikeassa sivupalkissa näytetään korkeus­tilastot: minimi, maksimi, mediaani ja
+  vaihteluväli metreinä.
+</p>
+<div class="infobox">
+  Korkeusdata on välttämätön Line of Sight -analyysin toiminnalle — se haetaan aina
+  Gather Intel -toiminnon yhteydessä.
+</div>
+
+<!-- 4.6 -->
+<h3 id="los">4.6 Näkyvyysanalyysi (Line of Sight)</h3>
+<p>
+  Laskee, mistä kohdista valitulla alueella on suora näköyhteys valittuun tarkkailu­pisteeseen.
+  Analyysi huomioi maaston korkeuserot, rakennukset ja metsät.
+</p>
+
+<h4>Käyttö</h4>
+<ol>
+  <li>Kerää ensin intel (Gather Intel) — korkeusdata ja rakennusdata vaaditaan</li>
+  <li>Klikkaa <strong>👁 Line of Sight</strong></li>
+  <li>Klikkaa kartalta piste, josta näkyvyys lasketaan (tarkkailupiste)</li>
+  <li>Sovellus laskee 160 × 160 pisteelle näkyvyysarvon (~25 600 laskentaa)</li>
+  <li>Tulos visualisoidaan karttaan värjättynä rasterikuvana</li>
+</ol>
+
+<h4>Väritys</h4>
+<table>
+  <tr><th>Väri</th><th>Merkitys</th></tr>
+  <tr><td style="background:#22c55e; color:white">Vihreä</td><td>Täysi näkyvyys pisteeseen</td></tr>
+  <tr><td style="background:#a3e635">Keltavihreä</td><td>Hyvä näkyvyys</td></tr>
+  <tr><td style="background:#eab308">Keltainen</td><td>Osittainen näkyvyys (metsän läpi)</td></tr>
+  <tr><td style="background:#f97316; color:white">Oranssi</td><td>Heikko näkyvyys</td></tr>
+  <tr><td style="background:#ef4444; color:white">Punainen</td><td>Ei näkyvyyttä (rakennukset/maasto estää)</td></tr>
+</table>
+
+<h4>Esteiden käsittely</h4>
+<ul>
+  <li>
+    <strong>Rakennukset:</strong> Täysi esto. Rakennuksen korkeus lasketaan
+    <code>height</code>-tagista tai <code>building:levels × 3 m</code>
+    (oletus 8 m jos tagia ei ole).
+  </li>
+  <li>
+    <strong>Maasto:</strong> Korkeusinterpolaatio 30 näytteenottopisteellä sädettä pitkin.
+    3 m toleranssi DEM-epätarkkuuden kompensoimiseksi.
+  </li>
+  <li>
+    <strong>Metsät:</strong> Osittainen esto — kukin ylitetty metsä­alue vähentää pistettä 40%.
+    Ei täysi esto vaan näkyvyyttä heikentävä tekijä.
+  </li>
+</ul>
+
+<div class="infobox">
+  Silmänkorkeus (1,8 m) lisätään sekä tarkkailu­pisteeseen että kohdepisteeseen
+  symmetrisen säteen varmistamiseksi.
+</div>
+
+<!-- 4.7 -->
+<div class="page-break"></div>
+<h3 id="saatiedot">4.7 Säätiedot (Weather)</h3>
+<p>
+  Avaa erillisen kelluvan paneelin, joka näyttää reaaliaikaiset säätiedot alueen keskipisteestä
+  Open-Meteo-palvelusta.
+</p>
+
+<h4>Nykyhetken tiedot</h4>
+<ul>
+  <li>Lämpötila ja tuntuma­lämpötila</li>
+  <li>Tuulen nopeus (m/s) ja suunta</li>
+  <li>Tuulen puuskat (m/s)</li>
+  <li>Suhteellinen kosteus (%)</li>
+  <li>Kastepiste (°C) ja kastepiste-ero</li>
+  <li>Näkyvyys (km)</li>
+  <li>Ilmanpaine (hPa)</li>
+  <li>Pilvisyys (%)</li>
+  <li>Sademäärä (mm)</li>
+</ul>
+
+<h4>48h tuntiennuste</h4>
+<p>
+  Tuntikohtainen ennuste kahdelle päivälle: lämpötila, sademäärätodennäköisyys,
+  tuulen nopeus ja puuskat, kosteus, kastepiste, näkyvyys ja pilvisyys.
+</p>
+
+<!-- 4.8 -->
+<h3 id="drone">4.8 Dronearviointi (Drone Assessment)</h3>
+<p>
+  Arvioi viiden drone-tyypin lentokelpoisuuden nykyisissä sääolosuhteissa sekä
+  24 tunnin tuntikohtaisessa ennusteessa. Tiedot haetaan samoista Open-Meteo-tiedoista.
+</p>
+
+<h4>Drone-tyypit</h4>
+<table>
+  <tr><th>Tyyppi</th><th>Esimerkki</th><th>Max tuuli</th><th>Max puuska</th><th>Paino</th><th>Vedenkestävyys</th></tr>
+  <tr><td>🔹 Micro</td><td>DJI Mini 4 Pro</td><td>8 m/s</td><td>10 m/s</td><td>&lt;250 g</td><td>Ei</td></tr>
+  <tr><td>🔷 Consumer</td><td>DJI Mavic 3</td><td>12 m/s</td><td>14 m/s</td><td>~900 g</td><td>Ei</td></tr>
+  <tr><td>🟦 Professional</td><td>DJI Matrice 30T</td><td>15 m/s</td><td>18 m/s</td><td>~3,5 kg</td><td>Kyllä</td></tr>
+  <tr><td>⬛ Military UAV</td><td>Tactical fixed-rotor</td><td>20 m/s</td><td>25 m/s</td><td>5–25 kg</td><td>Kyllä</td></tr>
+  <tr><td>✈️ Fixed Wing</td><td>Long-range ISR UAV</td><td>18 m/s</td><td>22 m/s</td><td>1–15 kg</td><td>Ei</td></tr>
+</table>
+
+<h4>Arviointikriteerit</h4>
+<ul>
+  <li><strong>Tuulen nopeus:</strong> Varoitus 75% rajasta, NOGO 100%</li>
+  <li><strong>Puuskat:</strong> Varoitus 80% rajasta, NOGO 100%</li>
+  <li><strong>Lämpötila:</strong> Alle min / yli max = NOGO; lähellä rajaa = CAUTION; alle +5°C = akku­varoitus</li>
+  <li><strong>Sademäärä / sääkoodi:</strong> WMO-sääkoodin perusteella; ukkosmyrsky = aina NOGO</li>
+  <li><strong>Kastepiste:</strong> Alle 2°C ero lämpötilaan = NOGO (kondensaatioriski)</li>
+  <li><strong>Kosteus:</strong> Yli max­kosteuden = CAUTION</li>
+  <li><strong>Näkyvyys:</strong> Alle min = NOGO; alle 2× min = CAUTION</li>
+  <li><strong>Ilmanpaine:</strong> Alle 950 hPa = varoitus (kantavuuden heikentyminen)</li>
+</ul>
+
+<h4>Statusmäärittelyt</h4>
+<p>
+  <span class="badge badge-green">GO</span> Kaikki parametrit rajojen sisällä<br>
+  <span class="badge badge-yellow">CAUTION</span> Jokin parametri lähellä rajaa tai lievä riskitekijä<br>
+  <span class="badge badge-red">NO-GO</span> Vähintään yksi parametri rajan ulkopuolella
+</p>
+
+<h4>24h tuntikohtainen ennuste</h4>
+<p>
+  Paneelin alaosassa näkyy vierittyvä taulukko, jossa rivit = drone-tyypit ja
+  sarakkeet = tunnit (seuraavat 24 h). Jokainen solu on värjätty (vihreä/keltainen/punainen)
+  vastaamaan GO/CAUTION/NO-GO-statusta kyseisellä tunnilla.
+</p>
+
+<!-- 4.9 -->
+<div class="page-break"></div>
+<h3 id="ai-analyysi">4.9 Tekoälyanalyysi (AI Analysis)</h3>
+<p>
+  Lähettää alueen OSM-datan tiivistetyssä muodossa tekoälylle ja saa takaisin
+  lyhyen taktisen arvion. Vaatii Gather Intel -toiminnon suorittamisen ensin.
+</p>
+
+<h4>Tekoälyn tuottaman raportin rakenne</h4>
+<ul>
+  <li><strong>Chokepoints</strong> — 2–3 luettelokohta liikkumisen pullonkauloista</li>
+  <li><strong>Barriers</strong> — Vesistöt, metsät ja maasto­esteet</li>
+  <li><strong>Key roads</strong> — Kriittiset tieyhteydet</li>
+  <li><strong>Notable features</strong> — Muut huomionarvoisen kohteet</li>
+</ul>
+
+<div class="infobox">
+  Malli: <code>gemma-3-27b-it</code> (tai muu Confidential Mind -ympäristömuuttujalla määritelty).
+  Max 4096 tokenia vastauksessa. Analyysi perustuu OSM-dataan — ei satelliittikuvaan.
+</div>
+
+<!-- 5. Rajapinnat -->
+<div class="page-break"></div>
+<h2 id="rajapinnat">5. Ulkoiset rajapinnat (API:t)</h2>
+
+<h3>Open-Meteo — Säätiedot</h3>
+<p>Endpoint: <code>https://api.open-meteo.com/v1/forecast</code></p>
+<p>Haettavat muuttujat (nykyhetki):</p>
+<ul>
+  <li>temperature_2m, apparent_temperature</li>
+  <li>relative_humidity_2m, dew_point_2m</li>
+  <li>precipitation, weather_code</li>
+  <li>wind_speed_10m, wind_direction_10m, wind_gusts_10m</li>
+  <li>surface_pressure, cloud_cover, visibility</li>
+</ul>
+<p>Tuntiennuste (48h): samat muuttujat + precipitation_probability. Tuulennopeus yksikkönä m/s.</p>
+
+<h3>Open-Meteo — Korkeusdata</h3>
+<p>Endpoint: <code>https://api.open-meteo.com/v1/elevation</code></p>
+<p>100 pistettä 10×10 ruudukossa, palautus metreinä.</p>
+
+<h3>Overpass API — OpenStreetMap</h3>
+<p>Endpoint: <code>https://overpass-api.de/api/interpreter</code> (POST)</p>
+<p>Haettavat elementit bboxin sisältä:</p>
+<ul>
+  <li>Rakennukset (<code>building</code>), luonto (<code>natural</code>), maankäyttö (<code>landuse</code>)</li>
+  <li>Virkistysalueet, vesistöt, tiet, sillat, infrastruktuuri, sotilaskohteet</li>
+</ul>
+<p>Vastaus: GeoJSON-geometriat tageineen.</p>
+
+<h3>Tilastokeskus WFS — Väestöruututilasto</h3>
+<p>Endpoint: <code>https://geo.stat.fi/geoserver/vaestoruutu/wfs</code></p>
+<table>
+  <tr><th>Parametri</th><th>Arvo</th></tr>
+  <tr><td>service</td><td>WFS</td></tr>
+  <tr><td>version</td><td>2.0.0</td></tr>
+  <tr><td>typeName</td><td>vaestoruutu:vaki2022_250m (ensin) / vaki2022_1km (varalla)</td></tr>
+  <tr><td>outputFormat</td><td>application/json</td></tr>
+  <tr><td>srsName</td><td>EPSG:4326</td></tr>
+  <tr><td>bbox</td><td>minLng,minLat,maxLng,maxLat,EPSG:4326</td></tr>
+</table>
+<p>Populaatiokenttä: <code>vaesto</code> (asukkaat per ruutu).</p>
+
+<!-- 6. Arkkitehtuuri -->
+<div class="page-break"></div>
+<h2 id="arkkitehtuuri">6. Ohjelmistoarkkitehtuuri</h2>
+
+<h3>Hakemistorakenne</h3>
+<table>
+  <tr><th>Polku</th><th>Sisältö</th></tr>
+  <tr><td><code>src/app/App.jsx</code></td><td>Pääkomponentti — tila, efektit, kartan alustus</td></tr>
+  <tr><td><code>src/features/</code></td><td>Yksi kansio per ominaisuus</td></tr>
+  <tr><td><code>src/features/[nimi]/[nimi]Layer.js</code></td><td>Mapbox GL -tasofunktiot (add/remove/update/visibility)</td></tr>
+  <tr><td><code>src/features/intel/IntelPanel.jsx</code></td><td>Oikean reunan tietopaneeli</td></tr>
+  <tr><td><code>src/features/layers/LayerPanel.jsx</code></td><td>Kerrosten hallintapaneeli</td></tr>
+  <tr><td><code>src/features/drone/DronePanel.jsx</code></td><td>Drone-arviointipaneeli</td></tr>
+  <tr><td><code>src/features/weather/WeatherPanel.jsx</code></td><td>Sääpaneeli</td></tr>
+  <tr><td><code>src/features/lineOfSight/losCalculator.js</code></td><td>LoS-laskenta (puhdas JS, ei UI)</td></tr>
+  <tr><td><code>src/services/</code></td><td>API-kutsut (yksi tiedosto per palvelu)</td></tr>
+  <tr><td><code>src/hooks/useDraggable.js</code></td><td>Paneelien raahaus-hook</td></tr>
+  <tr><td><code>server/index.js</code></td><td>Express-proxy-palvelin</td></tr>
+</table>
+
+<h3>Layer-moduulin rakenne (yleinen kaava)</h3>
+<p>Jokainen karttakerros noudattaa samaa rakennetta:</p>
+<ul>
+  <li><code>addXxxLayers(map)</code> — Lisää lähteet ja kerrokset Mapbox-kartalle</li>
+  <li><code>removeXxxLayers(map)</code> — Poistaa kaikki kerrokset ja lähteet</li>
+  <li><code>updateXxxData(map, data)</code> — Päivittää GeoJSON-datan lähteeseen</li>
+  <li><code>updateXxxVisibility(map, enabled)</code> — Kytkee kerrokset näkyviksi/piiloon</li>
+</ul>
+
+<h3>Tilan hallinta</h3>
+<p>
+  Kaikki sovellustila asuu <code>App.jsx</code>:ssä React-hookkeina (<code>useState</code>).
+  Data siirtyy alaspäin propsina. Karttakerrokset päivittyvät <code>useEffect</code>-efekteillä,
+  jotka reagoivat datan muutoksiin.
+</p>
+
+<!-- 7. Palvelin -->
+<div class="page-break"></div>
+<h2 id="palvelin">7. Palvelin (Backend)</h2>
+
+<p>
+  Kevyt Express-proxy porttiin 5174. Tehtävä on kiertää CORS-rajoituksia ja piilottaa
+  API-avaimet asiakkaalta.
+</p>
+
+<h3>Reitit</h3>
+<table>
+  <tr><th>Reitti</th><th>Metodi</th><th>Toiminto</th></tr>
+  <tr><td><code>/api/health</code></td><td>GET</td><td>Palvelimen terveystarkistus</td></tr>
+  <tr><td><code>/api/weather?lat=&amp;lng=</code></td><td>GET</td><td>Proxaa Open-Meteo API:n — nykyhetki + 48h tuntiennuste</td></tr>
+  <tr><td><code>/api/osm</code></td><td>POST (bbox)</td><td>Proxaa Overpass API — rakennukset, tiet, luonto jne.</td></tr>
+  <tr><td><code>/api/analyze</code></td><td>POST (summary)</td><td>Proxaa Confidential Mind tekoäly-API</td></tr>
+</table>
+
+<h3>Ympäristömuuttujat</h3>
+<table>
+  <tr><th>Muuttuja</th><th>Pakollinen</th><th>Selite</th></tr>
+  <tr><td><code>CONFIDENTIAL_MIND_BASE_URL</code></td><td>Kyllä (AI)</td><td>Tekoäly-API:n osoite</td></tr>
+  <tr><td><code>CONFIDENTIAL_MIND_API_KEY</code></td><td>Kyllä (AI)</td><td>API-avain</td></tr>
+  <tr><td><code>CONFIDENTIAL_MIND_MODEL</code></td><td>Ei</td><td>Malli (oletus: gemma-3-27b-it)</td></tr>
+  <tr><td><code>PORT</code></td><td>Ei</td><td>Palvelinportti (oletus: 5174)</td></tr>
+</table>
+
+<div style="margin-top: 60pt; border-top: 1px solid #ccc; padding-top: 12pt; font-size: 9.5pt; color: #888; text-align: center;">
+  AI2PB Map — Dokumentaatio v1.0 — Junction Hackathon 2026 — Juuso Isosuo
+</div>
+
+</body>
+</html>

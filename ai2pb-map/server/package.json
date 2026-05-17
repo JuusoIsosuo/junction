@@ -1,5 +1,6 @@
 {
   "name": "ai2pb-map-server",
+  "start": "node index.js",
   "private": true,
   "version": "0.0.0",
   "type": "module",

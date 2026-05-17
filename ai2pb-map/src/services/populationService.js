@@ -1,3 +1,5 @@
+import { API_BASE } from "./apiBase";
+
 // Finnish demographic distributions (Statistics Finland 2023)
 const AGE_GROUPS = [
   { group: '0–14',  share: 0.154, color: '#34d399' },
@@ -48,15 +50,9 @@ function buildResult(total, source, estimated = false) {
 
 // Tilastokeskus väestöruututilasto — 1km² tarkkuus, koko Suomi
 async function fetchStatsFiGrid(typeName, bbox, signal) {
-  const url = new URL('https://geo.stat.fi/geoserver/vaestoruutu/wfs');
-  url.searchParams.set('service', 'WFS');
-  url.searchParams.set('version', '2.0.0');
-  url.searchParams.set('request', 'GetFeature');
-  url.searchParams.set('typeName', typeName);
-  url.searchParams.set('bbox', `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat},EPSG:4326`);
-  url.searchParams.set('outputFormat', 'application/json');
-  url.searchParams.set('srsName', 'EPSG:4326');
-  const res = await fetch(url.toString(), { signal });
+  const bboxStr = `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat},EPSG:4326`;
+  const url = `${API_BASE}/api/statsfi?typeName=${encodeURIComponent(typeName)}&bbox=${encodeURIComponent(bboxStr)}`;
+  const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`StatsFi ${res.status}`);
   const json = await res.json();
   if (!json.features?.length) throw new Error('no features');
@@ -104,9 +100,10 @@ async function fetchOsmPopulation(bbox, signal) {
     );
     out body;
   `;
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
+  const res = await fetch(`${API_BASE}/api/overpass`, {
     method: 'POST',
-    body: query,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
     signal,
   });
   if (!res.ok) throw new Error(`Overpass ${res.status}`);

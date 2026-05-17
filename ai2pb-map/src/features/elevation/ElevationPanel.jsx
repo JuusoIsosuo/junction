@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useDraggable } from "../../hooks/useDraggable";
+import { API_BASE } from "../../services/apiBase";
 
 // Open-Meteo elevation API — free, no key, Copernicus DEM 90m, very reliable
 // Max 100 locations per request, so keep GRID_N ≤ 10 (10×10 = 100 pts)
@@ -337,7 +338,7 @@ export default function ElevationPanel({ bbox, map, onClose }) {
     const pts = buildGrid(bbox);
     const latStr = pts.map((p) => p.latitude.toFixed(6)).join(",");
     const lngStr = pts.map((p) => p.longitude.toFixed(6)).join(",");
-    const url = `https://api.open-meteo.com/v1/elevation?latitude=${latStr}&longitude=${lngStr}`;
+    const url = `${API_BASE}/api/elevation?latitude=${latStr}&longitude=${lngStr}`;
 
     fetch(url)
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })

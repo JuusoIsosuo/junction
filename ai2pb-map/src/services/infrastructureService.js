@@ -1,4 +1,4 @@
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+import { API_BASE } from "./apiBase";
 
 export const INFRA_TYPE_CONFIG = {
   dam:          { label: 'Dam',           icon: 'D', color: '#0ea5e9' },
@@ -70,10 +70,10 @@ export async function fetchInfrastructure({ bbox, signal }) {
 out center;
 `.trim();
 
-  const res = await fetch(OVERPASS_URL, {
+  const res = await fetch(`${API_BASE}/api/overpass`, {
     method: 'POST',
-    body: `data=${encodeURIComponent(query)}`,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
     signal,
   });
 

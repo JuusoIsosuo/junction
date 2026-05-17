@@ -138,7 +138,7 @@ export function addOSMLayers(map) {
 
   // ── Buildings ──────────────────────────────────────────────────────
   map.addLayer({ id: LAYER_BLDG_FILL, type: 'fill', source: OSM_SOURCE,
-    filter: ['all', ['==', '$type', 'Polygon'], IS_BUILDING],
+    filter: ['all', ['==', ['geometry-type'], 'Polygon'], IS_BUILDING],
     paint: { 'fill-color': ['get', '_color'], 'fill-opacity': 0.75, 'fill-outline-color': ['get', '_color'] } });
 
   map.addLayer({ id: LAYER_BLDG_LINE, type: 'line', source: OSM_SOURCE,
@@ -152,20 +152,20 @@ export function addOSMLayers(map) {
 
   // ── Nature ────────────────────────────────────────────────────────
   map.addLayer({ id: LAYER_NAT_FILL, type: 'fill', source: OSM_SOURCE,
-    filter: ['all', ['==', '$type', 'Polygon'], NOT_BUILDING],
+    filter: ['all', ['==', ['geometry-type'], 'Polygon'], NOT_BUILDING],
     paint: { 'fill-color': ['get', '_color'], 'fill-opacity': 0.35, 'fill-outline-color': ['get', '_color'] } });
 
   map.addLayer({ id: LAYER_NAT_RCASING, type: 'line', source: OSM_SOURCE,
     filter: ['in', ['get', '_featureType'], ['literal', ROAD_TYPES]],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': '#000000', 'line-opacity': 0.4,
-      'line-width': ['match', ['get', '_featureType'], 'road_motorway', 9, 'road_trunk', 8, 'road_primary', 7, 'road_secondary', 6, 'road_tertiary', 5, 'road_residential', 4, 'road_service', 3, 'road_path', 2, 3],
-      'line-cap': 'round', 'line-join': 'round' } });
+      'line-width': ['match', ['get', '_featureType'], 'road_motorway', 9, 'road_trunk', 8, 'road_primary', 7, 'road_secondary', 6, 'road_tertiary', 5, 'road_residential', 4, 'road_service', 3, 'road_path', 2, 3] } });
 
   map.addLayer({ id: LAYER_NAT_ROADS, type: 'line', source: OSM_SOURCE,
     filter: ['in', ['get', '_featureType'], ['literal', ROAD_TYPES]],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': ['get', '_color'], 'line-opacity': 0.95,
-      'line-width': ['match', ['get', '_featureType'], 'road_motorway', 7, 'road_trunk', 6, 'road_primary', 5, 'road_secondary', 4, 'road_tertiary', 3, 'road_residential', 2.5, 'road_service', 1.8, 'road_path', 1.2, 2],
-      'line-cap': 'round', 'line-join': 'round' } });
+      'line-width': ['match', ['get', '_featureType'], 'road_motorway', 7, 'road_trunk', 6, 'road_primary', 5, 'road_secondary', 4, 'road_tertiary', 3, 'road_residential', 2.5, 'road_service', 1.8, 'road_path', 1.2, 2] } });
 
   map.addLayer({ id: LAYER_NAT_LINES, type: 'line', source: OSM_SOURCE,
     filter: ['all', NOT_BUILDING, ['!', ['in', ['get', '_featureType'], ['literal', ROAD_TYPES]]]],

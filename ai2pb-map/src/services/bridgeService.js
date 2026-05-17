@@ -1,4 +1,4 @@
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+import { API_BASE } from "./apiBase";
 
 export async function fetchBridges({ bbox, signal }) {
   const { minLat, minLng, maxLat, maxLng } = bbox;
@@ -14,10 +14,10 @@ export async function fetchBridges({ bbox, signal }) {
 out geom;
 `.trim();
 
-  const res = await fetch(OVERPASS_URL, {
+  const res = await fetch(`${API_BASE}/api/overpass`, {
     method: 'POST',
-    body: `data=${encodeURIComponent(query)}`,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
     signal,
   });
 

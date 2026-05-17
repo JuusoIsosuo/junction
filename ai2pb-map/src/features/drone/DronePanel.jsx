@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { fetchWeather } from "../../services/weatherClient";
 import { useDraggable } from "../../hooks/useDraggable";
+import {
+  T, Panel, PanelHeader, SectionHeader, StatusRow,
+  Stat, Led, StatusBadge, sectionStyle,
+} from "../../ui/tactical";
 
 // ── Drone definitions ───────────────────────────────────────────────
 const DRONE_TYPES = [
@@ -104,8 +108,8 @@ function weatherCodeIcon(code) {
   if (code >= 61) return "🌧";
   if (code >= 51) return "🌦";
   if (code >= 45) return "🌫";
-  if (code >= 3)  return "☁";
-  if (code >= 1)  return "⛅";
+  if (code >= 3) return "☁";
+  if (code >= 1) return "⛅";
   return "☀";
 }
 
@@ -211,95 +215,90 @@ function formatDayLabel(dateStr) {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-// ── UI helpers ──────────────────────────────────────────────────────
-const STATUS_CONFIG = {
-  GO:      { color: "#22c55e", bg: "rgba(34,197,94,0.12)",  border: "rgba(34,197,94,0.3)",  label: "GO" },
-  CAUTION: { color: "#eab308", bg: "rgba(234,179,8,0.12)", border: "rgba(234,179,8,0.3)",  label: "CAUTION" },
-  NOGO:    { color: "#ef4444", bg: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.3)",  label: "NO-GO" },
-};
-
-const STATUS_DOT = {
-  GO:      "#22c55e",
-  CAUTION: "#eab308",
-  NOGO:    "#ef4444",
-};
-
-function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status];
-  return (
-    <span style={{
-      padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700,
-      fontFamily: "monospace", letterSpacing: "0.1em",
-      color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}`,
-    }}>
-      {cfg.label}
-    </span>
-  );
-}
-
-function WeatherStat({ label, value, sub }) {
-  return (
-    <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 6, padding: "7px 10px" }}>
-      <div style={{ fontSize: 9, color: "#475569", letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: "bold", color: "#f3f4f6", marginTop: 2 }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: "#6b7280" }}>{sub}</div>}
-    </div>
-  );
-}
+const STATUS_KEY = { GO: "go", CAUTION: "warn", NOGO: "nogo" };
 
 // ── Forecast: Hourly matrix ─────────────────────────────────────────
 function HourlyForecast({ slots }) {
-  // Show next 24 hours in a horizontal scrollable matrix
   const hours = slots.slice(0, 24);
-  if (!hours.length) return <div style={{ color: "#475569", fontSize: 12 }}>No forecast data</div>;
+  if (!hours.length) {
+    return <div style={{ color: T.textMute, fontSize: 11, fontFamily: T.mono }}>NO DATA</div>;
+  }
+
+  const labelW = 96;
+  const cellW = 44;
+  const totalW = labelW + hours.length * cellW;
 
   return (
-    <div style={{ overflowX: "auto" }}>
-      <div style={{ display: "inline-flex", flexDirection: "column", gap: 0, minWidth: "max-content" }}>
-        {/* Header row: times */}
-        <div style={{ display: "flex", gap: 0 }}>
-          <div style={{ width: 90, flexShrink: 0, fontSize: 9, color: "#475569", padding: "4px 6px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            Drone
+    <div style={{ overflowX: "auto", width: "100%" }}>
+      <div style={{ width: totalW }}>
+        <div style={{ display: "flex", width: totalW }}>
+          <div style={{
+            width: labelW, flexShrink: 0,
+            fontFamily: T.mono, fontSize: 9, color: T.textMute,
+            padding: "4px 6px", fontWeight: 700, letterSpacing: "0.16em",
+            textTransform: "uppercase",
+          }}>
+            DRONE
           </div>
-          {hours.map((h) => {
+          {hours.map((h, idx) => {
             const t = new Date(h.time);
             const hhmm = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
             const isNewDay = t.getHours() === 0;
             return (
-              <div key={h.time} style={{ width: 44, flexShrink: 0, textAlign: "center", padding: "4px 2px" }}>
+              <div key={`hdr-${idx}`} style={{
+                width: cellW, flexShrink: 0, textAlign: "center",
+                padding: "4px 2px",
+              }}>
                 {isNewDay && (
-                  <div style={{ fontSize: 8, color: "#38bdf8", marginBottom: 1 }}>
-                    {t.toLocaleDateString("en-US", { weekday: "short" })}
+                  <div style={{
+                    fontFamily: T.mono, fontSize: 8, color: T.accentCool,
+                    marginBottom: 1, letterSpacing: "0.08em",
+                  }}>
+                    {t.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
                   </div>
                 )}
-                <div style={{ fontSize: 9, color: "#64748b" }}>{hhmm}</div>
-                <div style={{ fontSize: 10 }}>{weatherCodeIcon(h.weather_code)}</div>
-                <div style={{ fontSize: 9, color: "#94a3b8" }}>{h.wind_speed_10m?.toFixed(0)}m/s</div>
+                <div style={{ fontFamily: T.mono, fontSize: 9, color: T.textDim }}>{hhmm}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 10, color: T.text }}>{weatherCodeIcon(h.weather_code)}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 9, color: T.textMute }}>{h.wind_speed_10m?.toFixed(0)}m/s</div>
               </div>
             );
           })}
         </div>
 
-        {/* Divider */}
-        <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "2px 0" }} />
+        <div style={{ height: 1, background: T.borderDim, margin: "2px 0", width: totalW }} />
 
-        {/* Drone rows */}
         {DRONE_TYPES.map((drone) => (
-          <div key={drone.id} style={{ display: "flex", gap: 0, alignItems: "center" }}>
-            <div style={{ width: 90, flexShrink: 0, fontSize: 10, color: "#94a3b8", padding: "3px 6px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {drone.icon} {drone.name}
+          <div key={drone.id} style={{ display: "flex", width: totalW, alignItems: "center", minHeight: 22 }}>
+            <div style={{
+              width: labelW, flexShrink: 0,
+              fontFamily: T.mono, fontSize: 10, color: T.text,
+              padding: "3px 6px", whiteSpace: "nowrap",
+              overflow: "hidden", textOverflow: "ellipsis",
+              letterSpacing: "0.06em",
+            }}>
+              <span style={{ color: T.accent, marginRight: 6 }}>{drone.icon}</span>
+              {drone.name.toUpperCase()}
             </div>
-            {hours.map((h) => {
+            {hours.map((h, idx) => {
               const { status } = assessDrone(drone, h);
+              const cfg = T.status[STATUS_KEY[status]];
               return (
-                <div key={h.time} style={{ width: 44, flexShrink: 0, display: "flex", justifyContent: "center", alignItems: "center", padding: "3px 2px" }}>
+                <div key={`${drone.id}-${idx}`} style={{
+                  width: cellW, flexShrink: 0, display: "flex",
+                  justifyContent: "center", alignItems: "center",
+                  padding: "3px 2px",
+                }}>
                   <div style={{
-                    width: 28, height: 16, borderRadius: 3,
-                    background: STATUS_DOT[status] + "33",
-                    border: `1px solid ${STATUS_DOT[status]}66`,
+                    width: 28, height: 14,
+                    background: cfg.bg,
+                    border: `1px solid ${cfg.border}`,
+                    borderRadius: 1,
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_DOT[status] }} />
+                    <div style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: cfg.fg, boxShadow: `0 0 4px ${cfg.fg}`,
+                    }} />
                   </div>
                 </div>
               );
@@ -311,101 +310,13 @@ function HourlyForecast({ slots }) {
   );
 }
 
-// ── Forecast: Daily summary ─────────────────────────────────────────
-function DailyForecast({ slots }) {
-  const days = groupByDay(slots).slice(0, 3);
-  if (!days.length) return <div style={{ color: "#475569", fontSize: 12 }}>No forecast data</div>;
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {days.map(({ date, slots: daySlots }) => {
-        const winds = daySlots.map((s) => s.wind_speed_10m).filter((v) => v != null);
-        const gusts = daySlots.map((s) => s.wind_gusts_10m).filter((v) => v != null);
-        const codes = daySlots.map((s) => s.weather_code).filter((v) => v != null);
-        const maxCode = codes.length ? Math.max(...codes) : 0;
-        const maxWind = winds.length ? Math.max(...winds) : 0;
-        const maxGust = gusts.length ? Math.max(...gusts) : null;
-        const minWind = winds.length ? Math.min(...winds) : 0;
-
-        // Per-drone worst-of-day status
-        const droneStatuses = DRONE_TYPES.map((drone) => ({
-          drone,
-          status: worstStatus(daySlots.map((s) => assessDrone(drone, s).status)),
-        }));
-
-        return (
-          <div key={date} style={{
-            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 8, padding: "10px 12px",
-          }}>
-            {/* Day header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div>
-                <span style={{ fontSize: 12, fontWeight: "bold", color: "#e2e8f0" }}>{formatDayLabel(date)}</span>
-                <span style={{ fontSize: 10, color: "#475569", marginLeft: 6 }}>{date}</span>
-              </div>
-              <div style={{ display: "flex", gap: 8, fontSize: 11, color: "#64748b", alignItems: "center" }}>
-                <span>{weatherCodeIcon(maxCode)}</span>
-                <span>💨 {minWind.toFixed(0)}–{maxWind.toFixed(0)} m/s</span>
-                {maxGust != null && <span>gust {maxGust.toFixed(0)} m/s</span>}
-              </div>
-            </div>
-
-            {/* Per-drone status grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4 }}>
-              {droneStatuses.map(({ drone, status }) => {
-                const cfg = STATUS_CONFIG[status];
-                return (
-                  <div key={drone.id} style={{
-                    background: cfg.bg, border: `1px solid ${cfg.border}`,
-                    borderRadius: 5, padding: "5px 4px", textAlign: "center",
-                  }}>
-                    <div style={{ fontSize: 13 }}>{drone.icon}</div>
-                    <div style={{ fontSize: 8, color: "#64748b", marginBottom: 2 }}>{drone.name}</div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: cfg.color, fontFamily: "monospace" }}>
-                      {cfg.label}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Best window hint */}
-            {(() => {
-              // Find longest consecutive GO window for Consumer drone
-              const consumerSlots = daySlots.map((s) => assessDrone(DRONE_TYPES[1], s).status);
-              let best = null, run = 0, runStart = null;
-              consumerSlots.forEach((s, i) => {
-                if (s === "GO") {
-                  if (run === 0) runStart = i;
-                  run++;
-                  if (!best || run > best.len) best = { len: run, start: runStart };
-                } else { run = 0; }
-              });
-              if (!best || best.len < 2) return null;
-              const startH = new Date(daySlots[best.start].time);
-              const endH = new Date(daySlots[Math.min(best.start + best.len - 1, daySlots.length - 1)].time);
-              const fmt = (d) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-              return (
-                <div style={{ marginTop: 6, fontSize: 10, color: "#22c55e" }}>
-                  ✓ Consumer best window: {fmt(startH)}–{fmt(endH)} ({best.len}h)
-                </div>
-              );
-            })()}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Main component ──────────────────────────────────────────────────
 export default function DronePanel({ lat, lng, onClose }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [minimized, setMinimized] = useState(false);
-const { pos, onMouseDown } = useDraggable(() => ({ x: Math.max(20, window.innerWidth - 400), y: 80 }));
+  const { pos, onMouseDown } = useDraggable(() => ({ x: Math.max(20, window.innerWidth - 400), y: 80 }));
 
   useEffect(() => {
     const ctl = new AbortController();
@@ -420,156 +331,156 @@ const { pos, onMouseDown } = useDraggable(() => ({ x: Math.max(20, window.innerW
   const assessments = c ? DRONE_TYPES.map((d) => ({ drone: d, ...assessDrone(d, c) })) : [];
   const overallStatus = assessments.length
     ? assessments.some((a) => a.status === "GO") ? "GO"
-    : assessments.some((a) => a.status === "CAUTION") ? "CAUTION" : "NOGO"
+      : assessments.some((a) => a.status === "CAUTION") ? "CAUTION" : "NOGO"
     : null;
 
   const hourlySlots = weather?.hourly ? parseHourlySlots(weather.hourly) : [];
-  const windDir = (deg) => ["N","NE","E","SE","S","SW","W","NW"][Math.round((deg ?? 0) / 45) % 8];
+  const windDir = (deg) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round((deg ?? 0) / 45) % 8];
 
   return (
-    <div style={{
-      position: "absolute", top: pos.y, left: pos.x, width: 420,
-      background: "rgba(0,0,0,0.90)", backdropFilter: "blur(10px)",
-      color: "white", borderRadius: 12, zIndex: 2,
-      fontFamily: "Arial", boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      maxHeight: "90vh", display: "flex", flexDirection: "column",
-    }}>
-      {/* Header */}
-      <div onMouseDown={onMouseDown} style={{
-        padding: "14px 16px", cursor: "grab", userSelect: "none",
-        borderBottom: minimized ? "none" : "1px solid rgba(255,255,255,0.08)",
-        display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0,
-      }}>
-        <div>
-          <span style={{ fontSize: 13, fontWeight: "bold", color: "#fb923c" }}>
-            🚁 Drone Flight Assessment
-          </span>
-          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-            {lat.toFixed(4)}°N, {lng.toFixed(4)}°E
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {overallStatus && <StatusBadge status={overallStatus} />}
-          <button onClick={() => setMinimized((m) => !m)}
-            style={{ background: "none", border: "none", color: "#64748b", fontSize: 16, cursor: "pointer" }}>
-            {minimized ? "▢" : "—"}
-          </button>
-          <button onClick={onClose}
-            style={{ background: "none", border: "none", color: "#64748b", fontSize: 18, cursor: "pointer" }}>
-            ✕
-          </button>
-        </div>
-      </div>
+    <Panel
+      glow
+      style={{
+        position: "absolute", top: pos.y, left: pos.x,
+        width: 440, zIndex: 6,
+        maxHeight: "calc(100vh - 80px)",
+        display: "flex", flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <PanelHeader
+        title="UAS · FLIGHT GO/NO-GO"
+        callsign={`${lat.toFixed(3)}°N ${lng.toFixed(3)}°E`}
+        badge={overallStatus && <StatusBadge status={STATUS_KEY[overallStatus]} />}
+        onMouseDown={onMouseDown}
+        onMinimize={() => setMinimized((m) => !m)}
+        onClose={onClose}
+        minimized={minimized}
+      />
 
       {!minimized && (
-        <div style={{ overflowY: "auto", flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {loading && (
-            <div style={{ textAlign: "center", color: "#64748b", padding: "24px 0" }}>
-              Fetching weather data…
-            </div>
-          )}
-          {error && <div style={{ color: "#f87171", fontSize: 13 }}>Error: {error}</div>}
+        <div style={{ overflowY: "auto", flex: 1 }}>
+          <div style={sectionStyle}>
+            <SectionHeader color={T.accentCool} label="ATMOSPHERIC · NOW" />
+            <StatusRow loading={loading} error={error} />
+            {c && !loading && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                <Stat label="WIND" value={`${c.wind_speed_10m} m/s`} sub={windDir(c.wind_direction_10m)} />
+                <Stat label="GUSTS" value={c.wind_gusts_10m != null ? `${c.wind_gusts_10m} m/s` : "—"} />
+                <Stat label="TEMP" value={`${Math.round(c.temperature_2m)}°C`} sub={`FEELS ${Math.round(c.apparent_temperature)}°C`} />
+                <Stat label="HUMID" value={`${c.relative_humidity_2m}%`} />
+                <Stat label="DEW PT" value={c.dew_point_2m != null ? `${Math.round(c.dew_point_2m)}°C` : "—"} sub={c.dew_point_2m != null ? `GAP ${(c.temperature_2m - c.dew_point_2m).toFixed(1)}°C` : null} />
+                <Stat label="VIS" value={c.visibility != null ? `${(c.visibility / 1000).toFixed(1)} km` : "—"} />
+                <Stat label="PRESS" value={c.surface_pressure != null ? `${Math.round(c.surface_pressure)} hPa` : "—"} />
+                <Stat label="CLOUD" value={c.cloud_cover != null ? `${c.cloud_cover}%` : "—"} />
+                <Stat label="PRECIP" value={`${c.precipitation} mm`} />
+              </div>
+            )}
+          </div>
 
           {c && (
-            <>
-              {/* Current conditions summary */}
-              <div style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                Current Conditions
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-                <WeatherStat label="Wind" value={`${c.wind_speed_10m} m/s`} sub={windDir(c.wind_direction_10m)} />
-                <WeatherStat label="Gusts" value={c.wind_gusts_10m != null ? `${c.wind_gusts_10m} m/s` : "—"} />
-                <WeatherStat label="Temp" value={`${Math.round(c.temperature_2m)}°C`} sub={`Feels ${Math.round(c.apparent_temperature)}°C`} />
-                <WeatherStat label="Humidity" value={`${c.relative_humidity_2m}%`} />
-                <WeatherStat label="Dew Point" value={c.dew_point_2m != null ? `${Math.round(c.dew_point_2m)}°C` : "—"} sub={c.dew_point_2m != null ? `Gap ${(c.temperature_2m - c.dew_point_2m).toFixed(1)}°C` : null} />
-                <WeatherStat label="Visibility" value={c.visibility != null ? `${(c.visibility / 1000).toFixed(1)} km` : "—"} />
-                <WeatherStat label="Pressure" value={c.surface_pressure != null ? `${Math.round(c.surface_pressure)} hPa` : "—"} />
-                <WeatherStat label="Cloud Cover" value={c.cloud_cover != null ? `${c.cloud_cover}%` : "—"} />
-                <WeatherStat label="Precip." value={`${c.precipitation} mm`} />
-              </div>
-
-              {/* Drone assessments */}
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 12 }}>
-                <div style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
-                  Flight Capability — Now
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {assessments.map(({ drone, status, issues, cautions }) => {
-                    const cfg = STATUS_CONFIG[status];
-                    return (
-                      <div key={drone.id} style={{
-                        background: cfg.bg, border: `1px solid ${cfg.border}`,
-                        borderRadius: 8, padding: "10px 12px",
+            <div style={sectionStyle}>
+              <SectionHeader color={T.accent} label="FLIGHT CAPABILITY · LIVE" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {assessments.map(({ drone, status, issues, cautions }) => {
+                  const cfg = T.status[STATUS_KEY[status]];
+                  return (
+                    <div key={drone.id} style={{
+                      background: cfg.bg,
+                      border: `1px solid ${cfg.border}`,
+                      borderRadius: T.radius,
+                      padding: "8px 10px",
+                    }}>
+                      <div style={{
+                        display: "flex", justifyContent: "space-between",
+                        alignItems: "center", marginBottom: 4,
                       }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                          <div>
-                            <span style={{ fontSize: 13, fontWeight: "bold", color: "#f3f4f6" }}>
-                              {drone.icon} {drone.name}
-                            </span>
-                            <span style={{ fontSize: 10, color: "#6b7280", marginLeft: 6 }}>
-                              {drone.example} · {drone.weight}
-                            </span>
+                        <div>
+                          <span style={{
+                            fontFamily: T.mono, fontSize: 12, fontWeight: 700,
+                            color: T.textBright, letterSpacing: "0.10em",
+                          }}>
+                            <span style={{ color: cfg.fg, marginRight: 8 }}>{drone.icon}</span>
+                            {drone.name.toUpperCase()}
+                          </span>
+                          <div style={{
+                            fontFamily: T.mono, fontSize: 9, color: T.textMute,
+                            marginTop: 2, letterSpacing: "0.06em",
+                          }}>
+                            {drone.example.toUpperCase()} · {drone.weight}
                           </div>
-                          <StatusBadge status={status} />
                         </div>
-                        <div style={{ display: "flex", gap: 10, fontSize: 10, color: "#475569", marginBottom: 4 }}>
-                          <span>Wind ≤{drone.maxWind} m/s</span>
-                          <span>Gust ≤{drone.maxGust} m/s</span>
-                          <span>{drone.minTemp}→{drone.maxTemp}°C</span>
-                          {drone.note && <span style={{ color: "#f59e0b" }}>{drone.note}</span>}
-                        </div>
-                        {issues.length > 0 && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                            {issues.map((msg, i) => (
-                              <div key={i} style={{ fontSize: 11, color: "#f87171" }}>✕ {msg}</div>
-                            ))}
-                          </div>
-                        )}
-                        {cautions.length > 0 && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                            {cautions.map((msg, i) => (
-                              <div key={i} style={{ fontSize: 11, color: "#fbbf24" }}>⚠ {msg}</div>
-                            ))}
-                          </div>
-                        )}
-                        {issues.length === 0 && cautions.length === 0 && (
-                          <div style={{ fontSize: 11, color: "#22c55e" }}>✓ All conditions within limits</div>
-                        )}
+                        <StatusBadge status={STATUS_KEY[status]} />
                       </div>
-                    );
-                  })}
+                      <div style={{
+                        display: "flex", gap: 12,
+                        fontFamily: T.mono, fontSize: 9, color: T.textMute,
+                        marginBottom: 4, letterSpacing: "0.05em",
+                      }}>
+                        <span>WND ≤{drone.maxWind}m/s</span>
+                        <span>GST ≤{drone.maxGust}m/s</span>
+                        <span>{drone.minTemp}→{drone.maxTemp}°C</span>
+                        {drone.note && <span style={{ color: T.warn }}>{drone.note.toUpperCase()}</span>}
+                      </div>
+                      {issues.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          {issues.map((msg, i) => (
+                            <div key={i} style={{ fontFamily: T.mono, fontSize: 10, color: T.hostile }}>
+                              · {msg}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {cautions.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          {cautions.map((msg, i) => (
+                            <div key={i} style={{ fontFamily: T.mono, fontSize: 10, color: T.warn }}>
+                              · {msg}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {issues.length === 0 && cautions.length === 0 && (
+                        <div style={{ fontFamily: T.mono, fontSize: 10, color: T.ok }}>
+                          ALL PARAMETERS WITHIN ENVELOPE
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {hourlySlots.length > 0 && (
+            <div style={sectionStyle}>
+              <SectionHeader color={T.accentHot} label="FORECAST · 24H" />
+              <div style={{
+                display: "flex", gap: 14, alignItems: "center",
+                fontFamily: T.mono, fontSize: 9, color: T.textMute,
+                marginBottom: 4, letterSpacing: "0.10em",
+              }}>
+                {[["GO", T.status.go.fg], ["CAUTION", T.warn], ["NO-GO", T.hostile]].map(([label, color]) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Led color={color} size={6} />
+                    <span>{label}</span>
+                  </div>
+                ))}
+                <div style={{ marginLeft: "auto", color: T.textMute }}>
+                  WND in m/s
                 </div>
               </div>
-
-              {/* Forecast section */}
-              {hourlySlots.length > 0 && (
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 12 }}>
-                  <div style={{ fontSize: 10, color: "#475569", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
-                    Forecast
-                  </div>
-
-                  {/* Legend */}
-                  <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#475569", marginBottom: 8 }}>
-                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                      <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color }} />
-                        <span>{cfg.label}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <HourlyForecast slots={hourlySlots} />
-                </div>
-              )}
-
-              <div style={{ fontSize: 10, color: "#334155", textAlign: "right" }}>
-                Weather: open-meteo.com · Always verify local regulations before flight
+              <HourlyForecast slots={hourlySlots} />
+              <div style={{
+                fontFamily: T.mono, fontSize: 9, color: T.textMute,
+                textAlign: "right", letterSpacing: "0.10em",
+              }}>
+                SRC · OPEN-METEO.COM · VERIFY LOCAL REGS PRE-FLIGHT
               </div>
-            </>
+            </div>
           )}
         </div>
       )}
-    </div>
+    </Panel>
   );
 }

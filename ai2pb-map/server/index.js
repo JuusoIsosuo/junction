@@ -11,6 +11,34 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+// Fetch with timeout + retry on transient errors. Open-Meteo occasionally
+// hangs/5xxs from this region; one retry almost always recovers it.
+async function fetchWithRetry(url, { attempts = 3, timeoutMs = 8000 } = {}) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: ctl.signal });
+      clearTimeout(timer);
+      // Retry on 5xx and 429 (rate-limit). Other 4xx are caller errors.
+      if (res.status >= 500 || res.status === 429) {
+        lastErr = new Error(`upstream ${res.status}`);
+      } else {
+        return res;
+      }
+    } catch (err) {
+      clearTimeout(timer);
+      lastErr = err;
+    }
+    // Exponential backoff with jitter
+    if (i < attempts - 1) {
+      await new Promise((r) => setTimeout(r, 200 * (i + 1) + Math.random() * 200));
+    }
+  }
+  throw lastErr ?? new Error("fetch failed");
+}
+
 app.get("/api/weather", async (req, res) => {
   try {
     const lat = Number(req.query.lat);
@@ -60,7 +88,7 @@ app.get("/api/weather", async (req, res) => {
     url.searchParams.set("wind_speed_unit", "ms");
     url.searchParams.set("timezone", "auto");
 
-    const response = await fetch(url.toString());
+    const response = await fetchWithRetry(url.toString());
     if (!response.ok) {
       res.status(response.status).send(`Weather upstream error ${response.status}`);
       return;
@@ -69,7 +97,8 @@ app.get("/api/weather", async (req, res) => {
     const data = await response.json();
     res.json(data);
   } catch (err) {
-    res.status(500).send(err.message || "Weather proxy error");
+    console.error("[/api/weather]", err?.message || err);
+    res.status(502).send(err?.message || "Weather proxy error");
   }
 });
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { API_BASE } from "../../services/apiBase";
 import { useDraggable } from "../../hooks/useDraggable";
+import { T, Panel, PanelHeader, Led, Divider } from "../../ui/tactical";
 
 const WMO = {
   0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",
@@ -67,7 +68,6 @@ function buildAreaSummary(elements, bbox, towerData, roadsData, elevData, bridge
   const heightKm = Math.abs(bbox.maxLat - bbox.minLat) * 111.32;
   const fmtCounts = (obj) => Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`  ${k}: ${v}`).join("\n");
 
-  // Named roads with representative coordinates
   let roadSection = "ROADS: no data";
   if (roadsData?.counts) {
     const total = Object.values(roadsData.counts).reduce((a, b) => a + b, 0);
@@ -85,7 +85,6 @@ function buildAreaSummary(elements, bbox, towerData, roadsData, elevData, bridge
       (namedRoads.length ? `\nNamed roads:\n${namedRoads.slice(0, 25).join("\n")}` : "");
   }
 
-  // Bridges with coordinates and load limits
   let bridgeSection = "BRIDGES: no data";
   if (bridgesData?.geojson?.features?.length) {
     const lines = bridgesData.geojson.features.map((f) => {
@@ -100,7 +99,6 @@ function buildAreaSummary(elements, bbox, towerData, roadsData, elevData, bridge
     bridgeSection = `BRIDGES: ${bridgesData.geojson.features.length} detected\n${lines.slice(0, 20).join("\n")}`;
   }
 
-  // Cell towers with radio type breakdown
   let towerSection = "CELL TOWERS: no data";
   if (towerData) {
     const radioBreakdown = {};
@@ -110,7 +108,6 @@ function buildAreaSummary(elements, bbox, towerData, roadsData, elevData, bridge
     towerSection = `CELL TOWERS: ${towerData.count} total\n${fmtCounts(radioBreakdown) || "  none"}`;
   }
 
-  // Elevation with highest/lowest named points
   let elevSection = "ELEVATION: no data";
   if (elevData?.stats) {
     const s = elevData.stats;
@@ -121,7 +118,6 @@ function buildAreaSummary(elements, bbox, towerData, roadsData, elevData, bridge
     elevSection = `ELEVATION: min ${Math.round(s.min)}m, max ${Math.round(s.max)}m, mean ${Math.round(s.mean)}m, range ${Math.round(s.range)}m, std dev ±${Math.round(s.stddev)}m\nHighest points: ${hi.join("; ")}\nLowest points: ${lo.join("; ")}`;
   }
 
-  // Settlements
   const settlementLines = Object.entries(places)
     .sort((a, b) => ["city","town","village","hamlet"].indexOf(a[0]) - ["city","town","village","hamlet"].indexOf(b[0]))
     .flatMap(([type, names]) => names.map(n => `  ${type}: ${n}`))
@@ -163,7 +159,7 @@ export default function AnalysisPanel({ elements, bbox, towerData, roadsData, el
   const [error, setError] = useState(null);
   const [minimized, setMinimized] = useState(false);
   const { pos, onMouseDown } = useDraggable(() => ({
-    x: Math.max(20, (window.innerWidth - 520) / 2),
+    x: Math.max(20, (window.innerWidth - 540) / 2),
     y: 20,
   }));
 
@@ -200,97 +196,124 @@ export default function AnalysisPanel({ elements, bbox, towerData, roadsData, el
   }, [elements, bbox]);
 
   return createPortal(
-    <div style={{
-      position: "fixed", top: pos.y, left: pos.x,
-      width: 520, maxWidth: "calc(100vw - 40px)", maxHeight: "calc(100vh - 40px)",
-      background: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)",
-      color: "white", borderRadius: 12, zIndex: 100, fontFamily: "Arial",
-      boxShadow: "0 4px 32px rgba(0,0,0,0.6)",
-      border: "1px solid rgba(139,92,246,0.3)",
-      display: "flex", flexDirection: "column", overflow: "hidden",
-    }}>
-      <div
+    <Panel
+      glow
+      style={{
+        position: "fixed", top: pos.y, left: pos.x,
+        width: 540, maxWidth: "calc(100vw - 40px)",
+        maxHeight: "calc(100vh - 80px)",
+        zIndex: 100,
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}
+    >
+      <PanelHeader
+        title="AI · FUSION ANALYSIS"
+        callsign="CONFIDENTIAL-MIND"
+        badge={loading ? <Led color={T.warn} pulse /> : <Led color={T.violet} />}
         onMouseDown={onMouseDown}
-        style={{
-          padding: "14px 16px", flexShrink: 0,
-          borderBottom: minimized ? "none" : "1px solid rgba(255,255,255,0.08)",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          cursor: "grab", userSelect: "none",
-        }}
-      >
-        <div>
-          <span style={{ fontSize: 13, fontWeight: "bold", color: "#a78bfa" }}>
-            AI Tactical Terrain Analysis
-          </span>
-          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-            ConfidentialMind · terrain + weather + infrastructure
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button
-            onClick={() => setMinimized((m) => !m)}
-            title={minimized ? "Show" : "Hide"}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#64748b",
-              fontSize: 11,
-              cursor: "pointer",
-              lineHeight: 1,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            {minimized ? "Show" : "Hide"}
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#64748b",
-              fontSize: 11,
-              cursor: "pointer",
-              lineHeight: 1,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
+        onMinimize={() => setMinimized((m) => !m)}
+        onClose={onClose}
+        minimized={minimized}
+      />
 
       {!minimized && (
-        <div style={{ overflowY: "auto", padding: "16px", flex: 1, minHeight: 0 }}>
+        <div style={{
+          overflowY: "auto", padding: "14px 16px", flex: 1, minHeight: 0,
+        }}>
           {loading && (
-            <div style={{ textAlign: "center", color: "#64748b", padding: "32px 0" }}>
-              <div style={{ fontSize: 13 }}>Analyzing terrain & weather...</div>
-              <div style={{ fontSize: 11, color: "#334155", marginTop: 6 }}>Fetching live forecast · processing area data</div>
+            <div style={{
+              textAlign: "center", color: T.textDim,
+              padding: "32px 0", fontFamily: T.mono,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                <Led color={T.violet} pulse />
+                <span style={{ fontSize: 12, letterSpacing: "0.18em", color: T.violet }}>
+                  PROCESSING · FUSION ANALYSIS
+                </span>
+              </div>
+              <div style={{
+                fontSize: 10, color: T.textMute, marginTop: 8,
+                letterSpacing: "0.10em",
+              }}>
+                COLLATING TERRAIN · METOC · INFRASTRUCTURE
+              </div>
+              <div style={{
+                marginTop: 16, height: 2, width: "60%", margin: "16px auto 0",
+                background: "rgba(183,148,244,0.10)", overflow: "hidden", position: "relative",
+              }}>
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: `linear-gradient(90deg, transparent, ${T.violet}, transparent)`,
+                  animation: "tac-sweep 1.6s linear infinite",
+                }} />
+              </div>
             </div>
           )}
 
           {error && (
-            <div style={{ color: "#f87171", fontSize: 13 }}>
-              Error: {error}
-              <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
-                Make sure CONFIDENTIAL_MIND_BASE_URL and CONFIDENTIAL_MIND_API_KEY are set on the server.
+            <div style={{
+              fontFamily: T.mono, fontSize: 11, color: T.hostile,
+              padding: "10px 12px",
+              background: "rgba(255,90,90,0.08)",
+              border: `1px solid rgba(255,90,90,0.35)`,
+              borderRadius: T.radius,
+            }}>
+              ERR · {error}
+              <div style={{ fontSize: 9, color: T.textDim, marginTop: 6, letterSpacing: "0.08em" }}>
+                CHECK CONFIDENTIAL_MIND_BASE_URL &amp; API_KEY ON SERVER.
               </div>
             </div>
           )}
 
           {analysis && (
-            <div style={{ fontSize: 13, lineHeight: 1.7, color: "#e2e8f0", whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere" }}>
+            <div style={{
+              fontFamily: T.mono, fontSize: 12, lineHeight: 1.7,
+              color: T.text, whiteSpace: "pre-wrap",
+              wordBreak: "break-word", overflowWrap: "anywhere",
+              letterSpacing: "0.01em",
+            }}>
               {analysis.split("\n").map((line, i) => {
                 if (line.startsWith("## ") || (line.startsWith("**") && line.endsWith("**"))) {
-                  return <div key={i} style={{ color: "#a78bfa", fontWeight: "bold", marginTop: 16, marginBottom: 6, fontSize: 14 }}>{line.replace(/\*\*/g, "").replace(/^#+\s*/, "")}</div>;
+                  const text = line.replace(/\*\*/g, "").replace(/^#+\s*/, "").toUpperCase();
+                  return (
+                    <div key={i} style={{
+                      color: T.violet, fontWeight: 700,
+                      marginTop: 18, marginBottom: 8,
+                      fontSize: 11, letterSpacing: "0.22em",
+                      paddingBottom: 4,
+                      borderBottom: `1px dashed ${T.borderDim}`,
+                      display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                      <Led color={T.violet} size={6} />
+                      {text}
+                    </div>
+                  );
                 }
                 if (line.includes("**")) {
                   const parts = line.split(/\*\*(.*?)\*\*/g);
-                  return <div key={i} style={{ marginBottom: 4 }}>{parts.map((p, j) => j % 2 === 1 ? <strong key={j} style={{ color: "#c4b5fd" }}>{p}</strong> : p)}</div>;
+                  return (
+                    <div key={i} style={{ marginBottom: 4 }}>
+                      {parts.map((p, j) =>
+                        j % 2 === 1
+                          ? <strong key={j} style={{ color: "#d6c2ff" }}>{p}</strong>
+                          : p
+                      )}
+                    </div>
+                  );
                 }
                 if (line.startsWith("- ") || line.startsWith("* ")) {
-                  return <div key={i} style={{ paddingLeft: 12, marginBottom: 5, color: "#cbd5e1" }}>· {line.slice(2)}</div>;
+                  return (
+                    <div key={i} style={{
+                      paddingLeft: 14, marginBottom: 4, color: T.text,
+                      position: "relative",
+                    }}>
+                      <span style={{
+                        position: "absolute", left: 0,
+                        color: T.accent, fontWeight: 700,
+                      }}>▸</span>
+                      {line.slice(2)}
+                    </div>
+                  );
                 }
                 if (line.trim() === "") return <div key={i} style={{ height: 8 }} />;
                 return <div key={i} style={{ marginBottom: 4 }}>{line}</div>;
@@ -299,7 +322,7 @@ export default function AnalysisPanel({ elements, bbox, towerData, roadsData, el
           )}
         </div>
       )}
-    </div>,
+    </Panel>,
     document.body
   );
 }

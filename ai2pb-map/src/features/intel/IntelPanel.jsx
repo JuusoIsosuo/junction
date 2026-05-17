@@ -2,6 +2,10 @@ import { RADIO_COLORS } from "../cellTowers/cellTowerLayer";
 import { INFRA_TYPE_CONFIG } from "../../services/infrastructureService";
 import { MILITARY_TYPE_CONFIG } from "../../services/militaryService";
 import { AGE_GROUPS } from "../../services/populationService";
+import {
+  T, Panel, PanelHeader, SectionHeader, StatusRow,
+  BigNum, BreakdownRow, sectionStyle, Stat, Led,
+} from "../../ui/tactical";
 
 const ROAD_COLORS = {
   motorway:     '#f97316',
@@ -15,56 +19,6 @@ const ROAD_COLORS = {
   other:        '#57534e',
 };
 
-function SectionHeader({ color, label }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'monospace',
-      fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: '#9ca3af', textTransform: 'uppercase' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: color }} />
-      {label}
-    </div>
-  );
-}
-
-function StatusRow({ loading, error }) {
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#9ca3af' }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fbbf24', flexShrink: 0,
-        animation: 'pulse 1.2s ease-in-out infinite' }} />
-      Querying…
-    </div>
-  );
-  if (error) return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#f87171', lineHeight: 1.4 }}>
-      <span style={{ flexShrink: 0, width: 16, height: 16, borderRadius: '50%',
-        background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444',
-        fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>!</span>
-      {error}
-    </div>
-  );
-  return null;
-}
-
-function BigNum({ value, unit }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-      <span style={{ fontSize: 22, fontWeight: 700, color: '#f3f4f6', fontFamily: 'monospace' }}>
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </span>
-      <span style={{ fontSize: 11, color: '#6b7280' }}>{unit}</span>
-    </div>
-  );
-}
-
-function BreakdownRow({ color, label, count }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#d1d5db' }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: color }} />
-      <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 11 }}>{label}</span>
-      <span style={{ color: '#9ca3af', fontSize: 11 }}>{count}</span>
-    </div>
-  );
-}
-
 function GenderBar({ male, female }) {
   const total = male + female;
   const malePct = total > 0 ? (male / total) * 100 : 50;
@@ -72,16 +26,20 @@ function GenderBar({ male, female }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       {[
-        { label: 'Miehet', count: male,   pct: malePct,   color: '#38bdf8' },
-        { label: 'Naiset', count: female, pct: femalePct, color: '#f472b6' },
+        { label: 'MALE',   count: male,   pct: malePct,   color: T.accentCool },
+        { label: 'FEMALE', count: female, pct: femalePct, color: '#f472b6' },
       ].map(({ label, count, pct, color }) => (
         <div key={label}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>
-            <span style={{ fontFamily: 'monospace' }}>{label}</span>
-            <span>{count.toLocaleString()} <span style={{ color: '#6b7280' }}>({pct.toFixed(1)}%)</span></span>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            fontFamily: T.mono, fontSize: 10, color: T.textDim, marginBottom: 2,
+            letterSpacing: '0.10em',
+          }}>
+            <span>{label}</span>
+            <span>{count.toLocaleString()} <span style={{ color: T.textMute }}>({pct.toFixed(1)}%)</span></span>
           </div>
-          <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.4s' }} />
+          <div style={{ height: 4, background: 'rgba(140,200,160,0.08)', overflow: 'hidden', borderRadius: 1 }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: color, transition: 'width 0.4s' }} />
           </div>
         </div>
       ))}
@@ -91,25 +49,29 @@ function GenderBar({ male, female }) {
 
 function AgeBar({ group, count, share, color, maxShare }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#6b7280', width: 34, flexShrink: 0 }}>{group}</span>
-      <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      <span style={{
+        fontFamily: T.mono, fontSize: 10, color: T.textMute,
+        width: 40, flexShrink: 0, letterSpacing: '0.05em',
+      }}>
+        {group}
+      </span>
+      <div style={{ flex: 1, height: 4, background: 'rgba(140,200,160,0.08)', overflow: 'hidden', borderRadius: 1 }}>
         <div style={{
-          height: '100%', borderRadius: 3, background: color,
-          width: `${(share / maxShare) * 100}%`, transition: 'width 0.4s',
+          height: '100%', background: color,
+          width: `${(share / maxShare) * 100}%`,
+          transition: 'width 0.4s',
         }} />
       </div>
-      <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#9ca3af', width: 38, textAlign: 'right', flexShrink: 0 }}>
+      <span style={{
+        fontFamily: T.mono, fontSize: 10, color: T.textDim,
+        width: 44, textAlign: 'right', flexShrink: 0,
+      }}>
         {count.toLocaleString()}
       </span>
     </div>
   );
 }
-
-const sec = {
-  display: 'flex', flexDirection: 'column', gap: 8,
-  padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-};
 
 export function IntelPanel({
   towers, towersLoading, towersError,
@@ -129,227 +91,230 @@ export function IntelPanel({
   towers?.towers.forEach((t) => { radioCounts[t.radio] = (radioCounts[t.radio] ?? 0) + 1; });
 
   return (
-    <div style={{
-      position: 'absolute', top: 20, right: 20,
-      background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(4px)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 8, zIndex: 1, width: 240,
-      display: 'flex', flexDirection: 'column',
-      fontFamily: 'Arial', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto',
-    }}>
+    <Panel
+      style={{
+        position: 'absolute', top: 20, right: 20,
+        width: 280, zIndex: 5,
+        maxHeight: 'calc(100vh - 80px)',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <PanelHeader
+        title="S2 · INT SITREP"
+        callsign="MULTI-INT"
+        badge={<Led color={T.accent} pulse={false} />}
+      />
 
-      {/* Population */}
-      {enabledLayers.population && (popLoading || popError || population) && (
-        <div style={sec}>
-          <SectionHeader color="#e879f9" label="Väestö" />
-          <StatusRow loading={popLoading} error={popError} />
-          {population && !popLoading && (
-            <>
-              <BigNum value={population.total} unit="asukasta" />
-              <GenderBar male={population.male} female={population.female} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
-                <div style={{ fontSize: 9, fontFamily: 'monospace', letterSpacing: '0.12em', color: '#4b5563', textTransform: 'uppercase', marginBottom: 2 }}>
-                  Ikäjakauma
+      <div style={{ overflowY: 'auto', flex: 1 }}>
+        {/* Population — HUMINT */}
+        {(popLoading || popError || population) && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#e879f9" label="HUMINT · POPULATION" />
+            <StatusRow loading={popLoading} error={popError} />
+            {population && !popLoading && (
+              <>
+                <BigNum value={population.total} unit="CIVILIANS" color="#f3d4ff" />
+                <GenderBar male={population.male} female={population.female} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                  <div style={{
+                    fontFamily: T.mono, fontSize: 9, color: T.textMute,
+                    letterSpacing: '0.18em', textTransform: 'uppercase',
+                  }}>
+                    AGE COHORTS
+                  </div>
+                  {(() => {
+                    const maxShare = Math.max(...AGE_GROUPS.map((g) => g.share));
+                    return population.ageGroups.map(({ group, count, share, color }) => (
+                      <AgeBar key={group} group={group} count={count} share={share} color={color} maxShare={maxShare} />
+                    ));
+                  })()}
                 </div>
-                {(() => {
-                  const maxShare = Math.max(...AGE_GROUPS.map((g) => g.share));
-                  return population.ageGroups.map(({ group, count, share, color }) => (
-                    <AgeBar key={group} group={group} count={count} share={share} color={color} maxShare={maxShare} />
-                  ));
-                })()}
-              </div>
-              <div style={{ fontSize: 10, color: '#4b5563', fontFamily: 'monospace' }}>
-                {population.source} · ikäjakauma: Tilastokeskus 2023
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                <div style={{
+                  fontFamily: T.mono, fontSize: 9, color: T.textMute,
+                  letterSpacing: '0.08em',
+                }}>
+                  SRC · {population.source} · TILASTOKESKUS 2023
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
-      {/* Cell Towers */}
-      {enabledLayers.cellTowers && (
-        <div style={sec}>
-          <SectionHeader color="#10b981" label="Cell Towers" />
-          <StatusRow loading={towersLoading} error={towersError} />
-          {towers && !towersLoading && (
-            <>
-              <BigNum value={towers.count} unit="masts" />
-              {Object.keys(radioCounts).length > 0 && (
+        {/* Cell Towers — SIGINT */}
+        {enabledLayers.cellTowers && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#10b981" label="SIGINT · COMMS RELAY" />
+            <StatusRow loading={towersLoading} error={towersError} />
+            {towers && !towersLoading && (
+              <>
+                <BigNum value={towers.count} unit="MASTS" color={T.ok} />
+                {Object.keys(radioCounts).length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {Object.entries(radioCounts).map(([radio, count]) => (
+                      <BreakdownRow key={radio} color={RADIO_COLORS[radio] ?? T.textMute} label={radio.toUpperCase()} count={count} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Roads — MSR / LOC */}
+        {enabledLayers.roads && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#5db8ff" label="MSR · ROUTES" />
+            <StatusRow loading={roadsLoading} error={roadsError} />
+            {roads && !roadsLoading && (
+              <>
+                <BigNum value={roads.geojson.features.length} unit="SEGMENTS" color={T.accentCool} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {Object.entries(radioCounts).map(([radio, count]) => (
-                    <BreakdownRow key={radio} color={RADIO_COLORS[radio] ?? '#6b7280'} label={radio} count={count} />
+                  {Object.entries(roads.counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([type, count]) => (
+                    <BreakdownRow key={type} color={ROAD_COLORS[type] ?? T.textMute} label={type.toUpperCase()} count={count} />
                   ))}
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+              </>
+            )}
+          </div>
+        )}
 
-      {/* Roads */}
-      {enabledLayers.roads && (
-        <div style={sec}>
-          <SectionHeader color="#3b82f6" label="Roads" />
-          <StatusRow loading={roadsLoading} error={roadsError} />
-          {roads && !roadsLoading && (
-            <>
-              <BigNum value={roads.geojson.features.length} unit="segments" />
+        {/* Bridges — Choke points */}
+        {enabledLayers.bridges && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#f59e0b" label="CHOKE-PTS · BRIDGES" />
+            <StatusRow loading={bridgesLoading} error={bridgesError} />
+            {bridges && !bridgesLoading && (
+              <>
+                <BigNum value={bridges.count} unit="CROSSINGS" color={T.accentHot} />
+                <div style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim, letterSpacing: '0.04em', lineHeight: 1.5 }}>
+                  // SELECT ASSET ON DISPLAY FOR LOAD-LIMITS &amp; DETAILS
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Infrastructure — HVT */}
+        {enabledLayers.infrastructure && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#fbbf24" label="INFRA · HVT" />
+            <StatusRow loading={infraLoading} error={infraError} />
+            {infrastructure && !infraLoading && (
+              <>
+                <BigNum value={infrastructure.count} unit="SITES" color={T.warn} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {Object.entries(infrastructure.typeCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([type, count]) => {
+                      const cfg = INFRA_TYPE_CONFIG[type];
+                      return (
+                        <BreakdownRow
+                          key={type}
+                          color={cfg?.color ?? T.textMute}
+                          label={(cfg?.label ?? type).toUpperCase()}
+                          count={count}
+                        />
+                      );
+                    })}
+                </div>
+                <div style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim, letterSpacing: '0.04em' }}>
+                  // SELECT SITE ON DISPLAY FOR DETAILS
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Military — MIL OBJ */}
+        {enabledLayers.military && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#6b7c3e" label="MIL · OBJECTIVES" />
+            <StatusRow loading={militaryLoading} error={militaryError} />
+            {military && !militaryLoading && (
+              <>
+                <BigNum value={military.count} unit="MIL SITES" color="#a3b870" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {Object.entries(military.typeCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([type, count]) => {
+                      const cfg = MILITARY_TYPE_CONFIG[type];
+                      return (
+                        <BreakdownRow
+                          key={type}
+                          color={cfg?.color ?? T.textMute}
+                          label={(cfg?.label ?? type).toUpperCase()}
+                          count={count}
+                        />
+                      );
+                    })}
+                </div>
+                <div style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim, letterSpacing: '0.04em' }}>
+                  // SELECT SITE ON DISPLAY FOR DETAILS
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Buildings — STRUCT */}
+        {enabledLayers.buildings && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#a78bfa" label="STRUCT · BUILDINGS" />
+            <StatusRow loading={osmLoading} error={osmError} />
+            {osm && !osmLoading && (
+              <>
+                <BigNum value={osm.counts.buildings} unit="FOOTPRINTS" color={T.violet} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {Object.entries(osm.counts.buildingTypes ?? {})
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 6)
+                    .map(([type, count]) => (
+                      <BreakdownRow key={type} color={T.violet} label={type.toUpperCase()} count={count} />
+                    ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Nature — TERRAIN COVER */}
+        {enabledLayers.nature && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#34d399" label="TERRAIN · COVER" />
+            <StatusRow loading={osmLoading} error={osmError} />
+            {osm && !osmLoading && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {Object.entries(roads.counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([type, count]) => (
-                  <BreakdownRow key={type} color={ROAD_COLORS[type] ?? '#6b7280'} label={type} count={count} />
+                {[
+                  { label: 'NATURAL',   color: '#34d399', count: osm.counts.natural },
+                  { label: 'LANDUSE',   color: '#6ee7b7', count: osm.counts.landuse },
+                  { label: 'LEISURE',   color: '#86efac', count: osm.counts.leisure },
+                  { label: 'WATERWAYS', color: '#38bdf8', count: osm.counts.waterway },
+                  { label: 'ROAD-NET',  color: '#f97316', count: osm.counts.roads },
+                ].filter((r) => r.count > 0).map((r) => (
+                  <BreakdownRow key={r.label} color={r.color} label={r.label} count={r.count} />
                 ))}
               </div>
-            </>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
-      {/* Bridges */}
-      {enabledLayers.bridges && (
-        <div style={sec}>
-          <SectionHeader color="#f59e0b" label="Bridges" />
-          <StatusRow loading={bridgesLoading} error={bridgesError} />
-          {bridges && !bridgesLoading && (
-            <>
-              <BigNum value={bridges.count} unit="bridges" />
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                Click a bridge on the map to see max weight &amp; details.
+        {/* Elevation — TOPO */}
+        {enabledLayers.elevation && (
+          <div style={sectionStyle}>
+            <SectionHeader color="#facc15" label="TOPO · ELEVATION" />
+            <StatusRow loading={elevLoading} error={elevError} />
+            {elevation && !elevLoading && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                <Stat label="MIN"   value={`${Math.round(elevation.stats.min)}M`}   color="#0ea5e9" />
+                <Stat label="MAX"   value={`${Math.round(elevation.stats.max)}M`}   color={T.hostile} />
+                <Stat label="MEAN"  value={`${Math.round(elevation.stats.mean)}M`}  color={T.ok} />
+                <Stat label="RANGE" value={`${Math.round(elevation.stats.range)}M`} color={T.warn} />
               </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Infrastructure */}
-      {enabledLayers.infrastructure && (
-        <div style={sec}>
-          <SectionHeader color="#fbbf24" label="Infrastructure" />
-          <StatusRow loading={infraLoading} error={infraError} />
-          {infrastructure && !infraLoading && (
-            <>
-              <BigNum value={infrastructure.count} unit="sites" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {Object.entries(infrastructure.typeCounts)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([type, count]) => {
-                    const cfg = INFRA_TYPE_CONFIG[type];
-                    return (
-                      <BreakdownRow
-                        key={type}
-                        color={cfg?.color ?? '#6b7280'}
-                        label={cfg?.label ?? type}
-                        count={count}
-                      />
-                    );
-                  })}
-              </div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                Click a site on the map for details.
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Military */}
-      {enabledLayers.military && (
-        <div style={sec}>
-          <SectionHeader color="#6b7c3e" label="Military" />
-          <StatusRow loading={militaryLoading} error={militaryError} />
-          {military && !militaryLoading && (
-            <>
-              <BigNum value={military.count} unit="sites" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {Object.entries(military.typeCounts)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([type, count]) => {
-                    const cfg = MILITARY_TYPE_CONFIG[type];
-                    return (
-                      <BreakdownRow
-                        key={type}
-                        color={cfg?.color ?? '#4b5563'}
-                        label={cfg?.label ?? type}
-                        count={count}
-                      />
-                    );
-                  })}
-              </div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                Click a site on the map for details.
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Buildings */}
-      {enabledLayers.buildings && (
-        <div style={sec}>
-          <SectionHeader color="#a78bfa" label="Buildings" />
-          <StatusRow loading={osmLoading} error={osmError} />
-          {osm && !osmLoading && (
-            <>
-              <BigNum value={osm.counts.buildings} unit="buildings" />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {Object.entries(osm.counts.buildingTypes ?? {})
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 6)
-                  .map(([type, count]) => (
-                    <BreakdownRow key={type} color="#a78bfa" label={type} count={count} />
-                  ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Nature */}
-      {enabledLayers.nature && (
-        <div style={sec}>
-          <SectionHeader color="#34d399" label="Nature" />
-          <StatusRow loading={osmLoading} error={osmError} />
-          {osm && !osmLoading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {[
-                { label: 'Natural',   color: '#34d399', count: osm.counts.natural },
-                { label: 'Land use',  color: '#6ee7b7', count: osm.counts.landuse },
-                { label: 'Leisure',   color: '#86efac', count: osm.counts.leisure },
-                { label: 'Waterways', color: '#38bdf8', count: osm.counts.waterway },
-                { label: 'Roads',     color: '#f97316', count: osm.counts.roads },
-              ].filter((r) => r.count > 0).map((r) => (
-                <BreakdownRow key={r.label} color={r.color} label={r.label} count={r.count} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Elevation */}
-      {enabledLayers.elevation && (
-        <div style={sec}>
-          <SectionHeader color="#facc15" label="Elevation" />
-          <StatusRow loading={elevLoading} error={elevError} />
-          {elevation && !elevLoading && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-              {[
-                { label: 'Min',   value: `${Math.round(elevation.stats.min)}m`,   color: '#0ea5e9' },
-                { label: 'Max',   value: `${Math.round(elevation.stats.max)}m`,   color: '#ef4444' },
-                { label: 'Mean',  value: `${Math.round(elevation.stats.mean)}m`,  color: '#34d399' },
-                { label: 'Range', value: `${Math.round(elevation.stats.range)}m`, color: '#facc15' },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{
-                  background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '7px 8px', textAlign: 'center',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                }}>
-                  <div style={{ fontSize: 9, color: '#475569', letterSpacing: '0.08em', marginBottom: 3 }}>{label}</div>
-                  <div style={{ fontSize: 13, fontWeight: 'bold', color, fontFamily: 'monospace' }}>{value}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-    </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Panel>
   );
 }

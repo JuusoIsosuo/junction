@@ -1,57 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --tac-bg:        #05080a;
+  --tac-panel:     rgba(8, 12, 10, 0.92);
+  --tac-text:      #c8d4c0;
+  --tac-text-dim:  #7a8f7a;
+  --tac-text-mute: #516a55;
+  --tac-border:    rgba(120, 180, 140, 0.22);
+  --tac-accent:    #7fd99a;
+  --tac-amber:     #ffb454;
+  --tac-hostile:   #ff5a5a;
+  --tac-classification: #1c3a26;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --tac-mono: "JetBrains Mono", "IBM Plex Mono", "Roboto Mono",
+              ui-monospace, Menlo, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  font: 14px/1.45 var(--tac-mono);
+  color-scheme: dark;
+  color: var(--tac-text);
+  background: var(--tac-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
+  background: var(--tac-bg);
+  overflow: hidden;
 }
 
 #root {
@@ -59,70 +38,104 @@ body {
   height: 100vh;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.7); }
+/* Subtle CRT scanline overlay over the entire app */
+.tac-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(140, 200, 160, 0.025) 0px,
+    rgba(140, 200, 160, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.55;
 }
 
-/* Dark-themed Mapbox popups for bridge info */
+/* Vignette to focus attention on the centre of the map */
+.tac-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 998;
+  background: radial-gradient(ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, 0.35) 100%);
+}
+
+/* Animations */
+@keyframes tac-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(0.8); }
+}
+@keyframes tac-flash {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+@keyframes tac-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Mapbox: tactical popup */
 .mapboxgl-popup-content {
-  background: rgba(10, 10, 15, 0.95) !important;
-  border: 1px solid rgba(245, 158, 11, 0.4) !important;
-  border-radius: 8px !important;
-  padding: 12px 14px !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
-  color: #e5e7eb;
+  background: rgba(6, 10, 8, 0.96) !important;
+  border: 1px solid rgba(140, 200, 160, 0.45) !important;
+  border-radius: 2px !important;
+  padding: 10px 12px !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7) !important;
+  color: var(--tac-text);
+  font-family: var(--tac-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
 .mapboxgl-popup-tip {
-  border-top-color: rgba(10, 10, 15, 0.95) !important;
-  border-bottom-color: rgba(10, 10, 15, 0.95) !important;
+  border-top-color: rgba(6, 10, 8, 0.96) !important;
+  border-bottom-color: rgba(6, 10, 8, 0.96) !important;
 }
 .mapboxgl-popup-close-button {
-  color: #9ca3af !important;
-  font-size: 16px !important;
-  padding: 4px 8px !important;
+  color: var(--tac-text-dim) !important;
+  font-size: 14px !important;
+  padding: 2px 6px !important;
+  font-family: var(--tac-mono);
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* Mapbox controls — square, tactical */
+.mapboxgl-ctrl-group {
+  background: rgba(6, 10, 8, 0.92) !important;
+  border: 1px solid rgba(140, 200, 160, 0.30) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 0 0 1px rgba(140, 200, 160, 0.06),
+              0 6px 18px rgba(0, 0, 0, 0.6) !important;
 }
+.mapboxgl-ctrl-group button {
+  background: transparent !important;
+}
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid rgba(140, 200, 160, 0.18) !important;
+}
+.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  filter: invert(0.85) hue-rotate(60deg) brightness(0.95);
+}
+.mapboxgl-ctrl-attrib {
+  background: rgba(6, 10, 8, 0.7) !important;
+  color: var(--tac-text-mute) !important;
+  font-family: var(--tac-mono);
+  font-size: 9px;
+}
+.mapboxgl-ctrl-attrib a { color: var(--tac-text-dim) !important; }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+/* Custom scrollbars inside panels */
+.tac-panel ::-webkit-scrollbar { width: 6px; height: 6px; }
+.tac-panel ::-webkit-scrollbar-track { background: rgba(140,200,160,0.04); }
+.tac-panel ::-webkit-scrollbar-thumb {
+  background: rgba(140,200,160,0.28);
+  border-radius: 2px;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
+.tac-panel ::-webkit-scrollbar-thumb:hover { background: rgba(140,200,160,0.45); }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
+/* Mapbox draw line / polygon — match tactical accent */
+.mapbox-gl-draw_polygon, .mapboxgl-canvas { outline: none; }

@@ -7,6 +7,10 @@ import DronePanel from "../features/drone/DronePanel";
 import { IntelPanel } from "../features/intel/IntelPanel";
 import AnalysisPanel from "../features/analysis/AnalysisPanel";
 import { LayerPanel } from "../features/layers/LayerPanel";
+import {
+  T, Panel, PanelHeader, TacButton, CoordRow,
+  Divider, StatusBadge, Led, fmtCoord,
+} from "../ui/tactical";
 import { fetchCellTowers } from "../services/cellTowerService";
 import { fetchRoads } from "../services/roadsService";
 import { fetchBridges } from "../services/bridgeService";
@@ -154,7 +158,6 @@ function App() {
         setBbox({ minLng, minLat, maxLng, maxLat });
         setIsPainting(false);
 
-        // Store polygon in static source, then remove Draw so it can't intercept map panning
         const src = map.current.getSource("drawn-area");
         if (src) src.setData(feature);
         draw.current.deleteAll();
@@ -185,20 +188,28 @@ function App() {
     });
 
     map.current.on("load", () => {
-      // Static outline layer for the drawn polygon (prevents Draw from making it draggable)
       map.current.addSource("drawn-area", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
+      });
+      map.current.addLayer({
+        id: "drawn-area-fill",
+        type: "fill",
+        source: "drawn-area",
+        paint: {
+          "fill-color": "#7fd99a",
+          "fill-opacity": 0.05,
+        },
       });
       map.current.addLayer({
         id: "drawn-area-outline",
         type: "line",
         source: "drawn-area",
         paint: {
-          "line-color": "#38bdf8",
-          "line-width": 2.5,
-          "line-dasharray": [3, 2],
-          "line-opacity": 0.9,
+          "line-color": "#7fd99a",
+          "line-width": 1.8,
+          "line-dasharray": [4, 2],
+          "line-opacity": 0.95,
         },
       });
       setMapInstance(map.current);
@@ -388,13 +399,11 @@ function App() {
   }, [queriedBbox]);
 
   // ── Line of Sight ────────────────────────────────────────────────
-  // Cursor crosshair when selecting observer
   useEffect(() => {
     if (!mapInstance) return;
     mapInstance.getCanvas().style.cursor = losMode ? 'crosshair' : '';
   }, [mapInstance, losMode]);
 
-  // Map click → set observer point
   useEffect(() => {
     if (!mapInstance || !losMode) return;
     const handleClick = (e) => {
@@ -405,11 +414,9 @@ function App() {
     return () => mapInstance.off('click', handleClick);
   }, [mapInstance, losMode]);
 
-  // Compute LoS whenever observer or data changes
   useEffect(() => {
     if (!losObserver || !elevData || !osmData || !queriedBbox) return;
     setLosComputing(true);
-    // Defer to next tick so UI updates first
     setTimeout(() => {
       const { buildings, forests } = extractObstacles(osmData.geojson);
       const result = computeLoS({
@@ -425,7 +432,6 @@ function App() {
     }, 0);
   }, [losObserver, elevData, osmData, queriedBbox]);
 
-  // Push LoS results to map layer
   useEffect(() => {
     if (!mapInstance) return;
     if (!losResult || !losObserver) {
@@ -486,217 +492,151 @@ function App() {
     });
   }, []);
 
-  const fmt = (n) => n?.toFixed(5);
-  const fmtCoord = (value, type) => {
-    if (value === null || value === undefined) return "";
-    const dir = value >= 0 ? (type === "lat" ? "N" : "E") : (type === "lat" ? "S" : "W");
-    return `${Math.abs(value).toFixed(5)}°${dir}`;
-  };
   const centerLat = bbox ? (bbox.minLat + bbox.maxLat) / 2 : null;
   const centerLng = bbox ? (bbox.minLng + bbox.maxLng) / 2 : null;
 
+  // Approximate area size in km² for the AO read-out
+  let areaKm2 = null;
+  if (bbox) {
+    const lngFactor = 111.32 * Math.cos(((bbox.minLat + bbox.maxLat) / 2) * (Math.PI / 180));
+    const widthKm  = Math.abs(bbox.maxLng - bbox.minLng) * lngFactor;
+    const heightKm = Math.abs(bbox.maxLat - bbox.minLat) * 111.32;
+    areaKm2 = widthKm * heightKm;
+  }
+
+  const anyLoading = towerLoading || roadsLoading || bridgesLoading || infraLoading || militaryLoading || osmLoading || elevLoading || popLoading;
+
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
+    <div className="tac-panel" style={{ width: "100vw", height: "100vh", position: "relative", background: "#05080a" }}>
       <div ref={mapContainer} style={{ width: "100%", height: "100%" }} />
 
-      {/* Left panel */}
-      <div style={{
-        position: "absolute",
-        top: leftPos.y,
-        left: leftPos.x,
-        background: "rgba(0,0,0,0.85)",
-        color: "white",
-        borderRadius: "10px",
-        zIndex: 1,
-        width: "300px",
-        fontFamily: "Arial, sans-serif",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}>
-        {/* Draggable header */}
-        <div
+      {/* Map decorations — scanlines + vignette overlay (above map, below panels) */}
+      <div className="tac-vignette" />
+      <div className="tac-scanlines" />
+
+      {/* Left command panel */}
+      <Panel
+        glow
+        style={{
+          position: "absolute",
+          top: leftPos.y,
+          left: leftPos.x,
+          zIndex: 5,
+          width: 320,
+          maxHeight: "calc(100vh - 80px)",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <PanelHeader
+          title="Area Inspector"
+          badge={anyLoading ? <Led color={T.warn} pulse /> : <Led color={T.ok} />}
           onMouseDown={leftDrag}
-          style={{
-            padding: "12px 16px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            cursor: "grab",
-            userSelect: "none",
-            borderBottom: leftMinimized ? "none" : "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <h3 style={{
-            margin: 0,
-            fontSize: 15,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "#cbd5f5",
-          }}>Area Inspector</h3>
-          <button
-            onClick={() => setLeftMinimized((m) => !m)}
-            title={leftMinimized ? "Show" : "Hide"}
-            style={{
-              background: "none", border: "none", color: "#64748b",
-              fontSize: 11, cursor: "pointer", lineHeight: 1, padding: "0 2px",
-              letterSpacing: "0.08em", textTransform: "uppercase",
-            }}
-          >
-            {leftMinimized ? "Show" : "Hide"}
-          </button>
-        </div>
+          onMinimize={() => setLeftMinimized((m) => !m)}
+          minimized={leftMinimized}
+        />
 
         {!leftMinimized && (
-          <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-            <button
+          <div style={{
+            padding: "10px 12px 12px",
+            display: "flex", flexDirection: "column", gap: 8,
+            overflowY: "auto",
+          }}>
+            <TacButton
+              variant={isPainting ? "danger" : "primary"}
               onClick={isPainting ? clearArea : activatePaint}
-              style={{
-                width: "100%", padding: "10px", borderRadius: "7px",
-                border: isPainting ? "1.5px solid #f87171" : "1.5px solid #38bdf8",
-                background: isPainting ? "rgba(248,113,113,0.15)" : "rgba(56,189,248,0.15)",
-                color: isPainting ? "#f87171" : "#38bdf8",
-                fontSize: 13, fontWeight: "bold", cursor: "pointer",
-              }}
             >
               {isPainting ? "Cancel Painting" : "Paint Area"}
-            </button>
+            </TacButton>
 
             {isPainting && (
-              <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
+              <div style={{ fontSize: 12, color: T.textDim, lineHeight: 1.5 }}>
                 Click to place points. Double-click to finish.
-              </p>
+              </div>
             )}
 
             {!isPainting && !bbox && (
-              <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>
-                Press <span style={{ color: "#38bdf8" }}>Paint Area</span> then draw a shape on the map.
-              </p>
+              <div style={{ fontSize: 12, color: T.textDim, lineHeight: 1.5 }}>
+                Press <span style={{ color: T.accent }}>Paint Area</span> then draw a shape on the map.
+              </div>
             )}
 
             {bbox && (
               <>
-                <div style={{
-                  background: "rgba(255,255,255,0.05)", borderRadius: 6,
-                  padding: "10px 12px", fontSize: 12,
-                }}>
-                  {[
-                    ["West", fmtCoord(bbox.minLng, "lng")],
-                    ["South", fmtCoord(bbox.minLat, "lat")],
-                    ["East", fmtCoord(bbox.maxLng, "lng")],
-                    ["North", fmtCoord(bbox.maxLat, "lat")],
-                  ].map(([label, val]) => (
-                    <div key={label} style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "6px 0",
-                      borderBottom: "1px solid rgba(255,255,255,0.06)",
-                    }}>
-                      <span style={{
-                        color: "#94a3b8",
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
-                        fontSize: 10,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                      }}>{label}</span>
-                      <span style={{ fontWeight: 700, fontSize: 12 }}>{val}</span>
-                    </div>
-                  ))}
+                <Divider label="Coordinates" />
+                <div>
+                  <CoordRow label="North" value={fmtCoord(bbox.maxLat, "lat")} />
+                  <CoordRow label="South" value={fmtCoord(bbox.minLat, "lat")} />
+                  <CoordRow label="East"  value={fmtCoord(bbox.maxLng, "lng")} />
+                  <CoordRow label="West"  value={fmtCoord(bbox.minLng, "lng")} />
+                  {areaKm2 !== null && (
+                    <CoordRow label="Area" value={`${areaKm2.toFixed(1)} km²`} />
+                  )}
                 </div>
 
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={clearArea} style={{
-                    flex: 1, padding: "8px", borderRadius: 6,
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    background: "rgba(255,255,255,0.05)",
-                    color: "#64748b", fontSize: 12, fontWeight: "bold", cursor: "pointer",
-                  }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <TacButton variant="ghost" onClick={clearArea} style={{ flex: 1 }}>
                     Clear
-                  </button>
+                  </TacButton>
                 </div>
 
-                <button onClick={gatherIntel} style={{
-                  width: "100%", padding: "10px", borderRadius: "7px",
-                  border: "1.5px solid #10b981", background: "rgba(16,185,129,0.12)",
-                  color: "#10b981", fontSize: 13, fontWeight: "bold", cursor: "pointer",
-                }}>
+                <Divider label="Actions" />
+
+                <TacButton variant="primary" onClick={gatherIntel}>
                   Gather Intel
-                </button>
+                </TacButton>
 
                 {queriedBbox && (
-                  <button onClick={() => setShowAnalysis(true)} style={{
-                    width: "100%", padding: "10px", borderRadius: "7px",
-                    border: "1.5px solid #a78bfa", background: "rgba(167,139,250,0.12)",
-                    color: "#a78bfa", fontSize: 13, fontWeight: "bold", cursor: "pointer",
-                  }}>
+                  <TacButton variant="violet" onClick={() => setShowAnalysis(true)}>
                     Analyze with AI
-                  </button>
+                  </TacButton>
                 )}
 
-                <button onClick={() => setShowWeather(true)} style={{
-                  width: "100%", padding: "10px", borderRadius: "7px",
-                  border: "1.5px solid #34d399", background: "rgba(52,211,153,0.12)",
-                  color: "#34d399", fontSize: 13, fontWeight: "bold", cursor: "pointer",
-                }}>
+                <TacButton variant="cool" onClick={() => setShowWeather(true)}>
                   Fetch Weather Data
-                </button>
+                </TacButton>
 
-                <button onClick={() => setShowDrone(true)} style={{
-                  width: "100%", padding: "10px", borderRadius: "7px",
-                  border: "1.5px solid #fb923c", background: "rgba(251,146,60,0.12)",
-                  color: "#fb923c", fontFamily: "Arial", fontSize: 13, fontWeight: "bold", cursor: "pointer",
-                }}>
-                  🚁  Drone Assessment
-                </button>
+                <TacButton variant="hot" onClick={() => setShowDrone(true)}>
+                  Drone Assessment
+                </TacButton>
 
                 {queriedBbox && elevData && osmData && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <button
+                  <>
+                    <TacButton
+                      variant="hot"
+                      active={losMode}
                       onClick={() => {
                         if (losMode) { setLosMode(false); return; }
                         setLosObserver(null); setLosResult(null);
                         setLosMode(true);
                       }}
-                      style={{
-                        width: "100%", padding: "10px", borderRadius: "7px",
-                        border: losMode ? "1.5px solid #f97316" : "1.5px solid #fb923c",
-                        background: losMode ? "rgba(249,115,22,0.2)" : "rgba(251,146,60,0.12)",
-                        color: losMode ? "#f97316" : "#fb923c",
-                        fontSize: 13, fontWeight: "bold", cursor: "pointer",
-                      }}
                     >
-                      {losMode ? "Peruuta valinta" : "Line of Sight"}
-                    </button>
+                      {losMode ? "Cancel Selection" : "Line of Sight"}
+                    </TacButton>
                     {losMode && (
-                      <p style={{ fontSize: 12, color: "#94a3b8", margin: 0 }}>
-                        Klikkaa kartalta piste, josta haluat tarkastella näkyvyyttä.
-                      </p>
+                      <div style={{ fontSize: 12, color: T.textDim, lineHeight: 1.5 }}>
+                        Click a point on the map to inspect visibility.
+                      </div>
                     )}
                     {losComputing && (
-                      <p style={{ fontSize: 12, color: "#fb923c", margin: 0 }}>Lasketaan näkyvyyttä…</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.accentHot }}>
+                        <Led color={T.accentHot} pulse />
+                        <span>Computing line of sight…</span>
+                      </div>
                     )}
                     {losObserver && !losMode && !losComputing && (
-                      <button
-                        onClick={() => { setLosObserver(null); setLosResult(null); }}
-                        style={{
-                          width: "100%", padding: "7px", borderRadius: "6px",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          background: "rgba(255,255,255,0.05)",
-                          color: "#64748b", fontSize: 12, cursor: "pointer",
-                        }}
-                      >
-                        Poista LoS
-                      </button>
+                      <TacButton variant="ghost" onClick={() => { setLosObserver(null); setLosResult(null); }}>
+                        Clear LoS
+                      </TacButton>
                     )}
-                  </div>
+                  </>
                 )}
               </>
             )}
+
+            <Divider label="Layers" />
 
             <LayerPanel
               enabledLayers={enabledLayers}
@@ -705,9 +645,9 @@ function App() {
             />
           </div>
         )}
-      </div>
+      </Panel>
 
-      {/* Right sidebar */}
+      {/* Right sidebar — S2 SITREP */}
       {queriedBbox && (
         <IntelPanel
           towers={towerData}           towersLoading={towerLoading}   towersError={towerError}

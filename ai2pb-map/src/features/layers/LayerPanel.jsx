@@ -1,3 +1,5 @@
+import { T, Led } from "../../ui/tactical";
+
 const LAYERS = [
   { id: 'cellTowers',     label: 'Cell Towers',    color: '#ef4444', description: 'Mobile masts (OSM)' },
   { id: 'roads',          label: 'Roads',           color: '#3b82f6', description: 'Road network (OSM)' },
@@ -12,34 +14,38 @@ const LAYERS = [
 
 export function LayerPanel({ enabledLayers, onToggle, onToggleAll }) {
   const allOn = LAYERS.every((l) => enabledLayers[l.id]);
+  const enabledCount = LAYERS.filter((l) => enabledLayers[l.id]).length;
 
   return (
     <div style={{
-      background: 'rgba(0,0,0,0.82)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 8,
-      padding: '10px 12px',
-      backdropFilter: 'blur(4px)',
+      background: T.bgInset,
+      border: `1px solid ${T.borderDim}`,
+      borderRadius: T.radius,
+      padding: '8px 9px',
       display: 'flex',
       flexDirection: 'column',
-      gap: 5,
-      minWidth: 180,
+      gap: 4,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-        <div style={{
-          fontFamily: 'monospace', fontSize: 10, fontWeight: 700,
-          letterSpacing: '0.15em', color: '#4b5563', textTransform: 'uppercase',
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 4,
+      }}>
+        <span style={{
+          fontFamily: T.mono, fontSize: 9, fontWeight: 700,
+          letterSpacing: '0.20em', color: T.textDim,
+          textTransform: 'uppercase',
         }}>
-          Layers
-        </div>
+          OVERLAYS · {enabledCount}/{LAYERS.length}
+        </span>
         <button
           onClick={onToggleAll}
           style={{
-            fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em',
-            padding: '2px 6px', borderRadius: 3,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.05)',
-            color: '#6b7280', cursor: 'pointer',
+            fontFamily: T.mono, fontSize: 9, letterSpacing: '0.14em',
+            padding: '2px 8px', borderRadius: T.radius,
+            border: `1px solid ${T.borderDim}`,
+            background: 'transparent',
+            color: T.textDim, cursor: 'pointer',
+            textTransform: 'uppercase',
           }}
         >
           {allOn ? 'ALL OFF' : 'ALL ON'}
@@ -55,22 +61,29 @@ export function LayerPanel({ enabledLayers, onToggle, onToggleAll }) {
             title={layer.description}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '5px 8px', borderRadius: 3,
-              border: `1px solid ${enabled ? 'rgba(255,255,255,0.08)' : 'transparent'}`,
-              background: enabled ? 'rgba(255,255,255,0.04)' : 'transparent',
+              padding: '5px 7px',
+              border: `1px solid ${enabled ? T.borderDim : 'transparent'}`,
+              background: enabled ? T.bgInset : 'transparent',
               cursor: 'pointer', textAlign: 'left',
-              opacity: enabled ? 1 : 0.45, transition: 'all 0.15s',
+              opacity: enabled ? 1 : 0.5,
+              transition: 'all 0.12s',
+              borderRadius: T.radius,
             }}
           >
+            <Led color={enabled ? layer.color : "#2a3a2a"} size={6} />
             <span style={{
-              width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-              background: enabled ? layer.color : '#374151', transition: 'background 0.15s',
-            }} />
-            <span style={{ flex: 1, fontSize: 12, color: '#d1d5db', fontFamily: 'Arial' }}>
+              flex: 1, fontFamily: T.mono, fontSize: 11,
+              color: enabled ? T.text : T.textMute,
+              letterSpacing: '0.04em',
+            }}>
               {layer.label}
             </span>
-            <span style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em', color: enabled ? '#6b7280' : '#4b5563' }}>
-              {enabled ? 'ON' : 'OFF'}
+            <span style={{
+              fontFamily: T.mono, fontSize: 9,
+              letterSpacing: '0.16em',
+              color: enabled ? T.accent : T.textMute,
+            }}>
+              {enabled ? '◉' : '◯'}
             </span>
           </button>
         );

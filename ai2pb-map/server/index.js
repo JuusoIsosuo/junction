@@ -1,5 +1,11 @@
 import express from "express";
 import cors from "cors";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -230,7 +236,16 @@ ${summary}`,
   }
 });
 
+// ── Serve built frontend (production) ────────────────────────────
+const distDir = path.resolve(__dirname, "..", "dist");
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+  app.get(/^\/(?!api).*/, (_req, res) => {
+    res.sendFile(path.join(distDir, "index.html"));
+  });
+}
+
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
-  console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });

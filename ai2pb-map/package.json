@@ -7,11 +7,14 @@
     "dev": "vite",
     "dev:server": "npm --prefix server run dev",
     "build": "vite build",
+    "start": "node server/index.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@mapbox/mapbox-gl-draw": "^1.5.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
     "mapbox-gl": "^3.23.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"

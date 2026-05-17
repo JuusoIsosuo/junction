@@ -7,6 +7,7 @@ const LAYERS = [
   { id: 'buildings',      label: 'Buildings',       color: '#a78bfa', description: 'Building footprints (OSM)' },
   { id: 'nature',         label: 'Nature',          color: '#34d399', description: 'Landcover, waterways, parks (OSM)' },
   { id: 'elevation',      label: 'Elevation',       color: '#facc15', description: 'Elevation heatmap & contours' },
+  { id: 'population',    label: 'Population',      color: '#f97316', description: 'Population density grid (Tilastokeskus 2022 / OSM)' },
 ];
 
 export function LayerPanel({ enabledLayers, onToggle, onToggleAll }) {

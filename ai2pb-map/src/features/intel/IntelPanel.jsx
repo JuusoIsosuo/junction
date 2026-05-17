@@ -139,7 +139,7 @@ export function IntelPanel({
     }}>
 
       {/* Population */}
-      {(popLoading || popError || population) && (
+      {enabledLayers.population && (popLoading || popError || population) && (
         <div style={sec}>
           <SectionHeader color="#e879f9" label="Väestö" />
           <StatusRow loading={popLoading} error={popError} />

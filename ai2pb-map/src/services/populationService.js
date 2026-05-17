@@ -47,30 +47,52 @@ function buildResult(total, source, estimated = false) {
 }
 
 // Tilastokeskus väestöruututilasto — 1km² tarkkuus, koko Suomi
-async function fetchStatsFiPopulation(bbox, signal) {
+async function fetchStatsFiGrid(typeName, bbox, signal) {
   const url = new URL('https://geo.stat.fi/geoserver/vaestoruutu/wfs');
   url.searchParams.set('service', 'WFS');
   url.searchParams.set('version', '2.0.0');
   url.searchParams.set('request', 'GetFeature');
-  url.searchParams.set('typeName', 'vaestoruutu:vaki2022_1km');
+  url.searchParams.set('typeName', typeName);
   url.searchParams.set('bbox', `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat},EPSG:4326`);
   url.searchParams.set('outputFormat', 'application/json');
   url.searchParams.set('srsName', 'EPSG:4326');
-
   const res = await fetch(url.toString(), { signal });
   if (!res.ok) throw new Error(`StatsFi ${res.status}`);
-
   const json = await res.json();
   if (!json.features?.length) throw new Error('no features');
+  return json.features;
+}
+
+async function fetchStatsFiPopulation(bbox, signal) {
+  // Try 250m grid first for finer detail; fall back to 1km
+  let features;
+  let resolution = '250m';
+  try {
+    features = await fetchStatsFiGrid('vaestoruutu:vaki2022_250m', bbox, signal);
+  } catch {
+    features = await fetchStatsFiGrid('vaestoruutu:vaki2022_1km', bbox, signal);
+    resolution = '1km';
+  }
 
   let total = 0;
-  for (const f of json.features) {
+  for (const f of features) {
     const pop = f.properties?.vaesto ?? 0;
     if (pop > 0) total += pop;
   }
   if (total === 0) throw new Error('no population data');
 
-  return buildResult(total, 'Tilastokeskus 2022');
+  const populated = features.filter((f) => (f.properties?.vaesto ?? 0) > 0);
+  const maxPop = Math.max(...populated.map((f) => f.properties.vaesto));
+
+  const geojson = {
+    type: 'FeatureCollection',
+    features: populated.map((f) => ({
+      ...f,
+      properties: { pop: f.properties.vaesto, norm: f.properties.vaesto / maxPop },
+    })),
+  };
+
+  return { ...buildResult(total, `Tilastokeskus 2022 (${resolution})`), geojson };
 }
 
 // OSM place-nodet muille alueille
@@ -96,7 +118,19 @@ async function fetchOsmPopulation(bbox, signal) {
     if (!isNaN(pop)) total += pop;
   }
   if (total === 0) throw new Error('no population data');
-  return buildResult(total, 'OSM (taajama-arvot)');
+
+  const geojson = {
+    type: 'FeatureCollection',
+    features: (json.elements ?? [])
+      .filter((el) => parseInt(el.tags?.population ?? '0', 10) > 0)
+      .map((el) => ({
+        type: 'Feature',
+        properties: { pop: parseInt(el.tags.population, 10), name: el.tags.name ?? '' },
+        geometry: { type: 'Point', coordinates: [el.lon, el.lat] },
+      })),
+  };
+
+  return { ...buildResult(total, 'OSM (taajama-arvot)'), geojson };
 }
 
 export async function fetchPopulation({ bbox, signal }) {

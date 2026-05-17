@@ -48,6 +48,10 @@ import {
   addLosLayers, removeLosLayers, updateLosData,
 } from "../features/lineOfSight/losLayer";
 import {
+  addPopulationLayers, removePopulationLayers,
+  updatePopulationData, updatePopulationVisibility,
+} from "../features/population/populationLayer";
+import {
   extractObstacles, computeLoS, losResultsToCanvas,
 } from "../features/lineOfSight/losCalculator";
 
@@ -70,7 +74,7 @@ function App() {
   const [showDrone, setShowDrone] = useState(false);
 
   const [enabledLayers, setEnabledLayers] = useState({
-    cellTowers: true, roads: true, bridges: true, infrastructure: true, military: true, buildings: true, nature: true, elevation: true,
+    cellTowers: true, roads: true, bridges: true, infrastructure: true, military: true, buildings: true, nature: true, elevation: true, population: true,
   });
   const [queriedBbox, setQueriedBbox] = useState(null);
 
@@ -218,6 +222,7 @@ function App() {
     addOSMLayers(mapInstance);
     addElevationLayers(mapInstance);
     addLosLayers(mapInstance);
+    addPopulationLayers(mapInstance);
     return () => {
       removeCellTowerLayers(mapInstance);
       removeRoadsLayers(mapInstance);
@@ -227,6 +232,7 @@ function App() {
       removeOSMLayers(mapInstance);
       removeElevationLayers(mapInstance);
       removeLosLayers(mapInstance);
+      removePopulationLayers(mapInstance);
     };
   }, [mapInstance]);
 
@@ -262,6 +268,11 @@ function App() {
   }, [mapInstance, osmData]);
 
   useEffect(() => {
+    if (!mapInstance) return;
+    updatePopulationData(mapInstance, popData?.geojson ?? null);
+  }, [mapInstance, popData]);
+
+  useEffect(() => {
     if (!mapInstance || !elevData) return;
     const { results, bbox: b } = elevData;
     const elevs = results.map((r) => r.elevation);
@@ -280,6 +291,7 @@ function App() {
     updateBuildingsVisibility(mapInstance, enabledLayers.buildings);
     updateNatureVisibility(mapInstance, enabledLayers.nature);
     updateElevationVisibility(mapInstance, enabledLayers.elevation);
+    updatePopulationVisibility(mapInstance, enabledLayers.population);
   }, [mapInstance, enabledLayers]);
 
   // ── Data fetching ─────────────────────────────────────────────────
